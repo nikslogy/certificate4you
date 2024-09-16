@@ -68,14 +68,14 @@ function CertificateGenerator() {
 
     const formDataToSend = new FormData();
     Object.keys(formData).forEach(key => formDataToSend.append(key, formData[key]));
-    formDataToSend.append('logo', logo);
+    if (logo) formDataToSend.append('logo', logo);
     signatures.forEach((sig, index) => {
       formDataToSend.append(`signatureName${index + 1}`, sig.name);
       formDataToSend.append(`signature${index + 1}`, sig.type === 'draw' ? sigPads.current[index].toDataURL() : sig.image);
     });
 
     try {
-      const response = await fetch('http://localhost:3001/api/generate-certificate', {
+      const response = await fetch('/api/generate-certificate', {
         method: 'POST',
         body: formDataToSend,
       });
@@ -84,14 +84,12 @@ function CertificateGenerator() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'certificate.pdf';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const result = await response.json();
+      if (result.url) {
+        window.open(result.url, '_blank');
+      } else {
+        throw new Error('No URL returned from server');
+      }
     } catch (error) {
       console.error('Error generating certificate:', error);
       setError('Failed to generate certificate. Please try again.');

@@ -3,23 +3,25 @@ import React, { useState } from 'react';
 function CertificateVerifier() {
   const [id, setId] = useState('');
   const [result, setResult] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/verify-certificate/${id}`);
-      const text = await response.text(); // Get the raw response text
-      console.log('Raw response:', text); // Log the raw response
+      const response = await fetch(`/api/verify-certificate/${id}`);
+      const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(data.error || 'Failed to verify certificate');
       }
       
-      const data = JSON.parse(text); // Parse the text as JSON
       setResult(data);
     } catch (error) {
       console.error('Error verifying certificate:', error);
-      setResult({ error: 'Failed to verify certificate' });
+      setResult({ error: error.message, isValid: false });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -34,14 +36,24 @@ function CertificateVerifier() {
           placeholder="Enter Certificate ID"
           required
         />
-        <button type="submit">Verify</button>
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? 'Verifying...' : 'Verify'}
+        </button>
       </form>
       {result && (
         <div>
-          {result.name ? (
-            <p>Certificate is valid. Name: {result.name}</p>
+          {result.isValid ? (
+            <div>
+              <p>Certificate is valid.</p>
+              <p>Name: {result.name}</p>
+              {result.pdfUrl && (
+                <a href={result.pdfUrl} target="_blank" rel="noopener noreferrer">
+                  View Certificate
+                </a>
+              )}
+            </div>
           ) : (
-            <p>Certificate is invalid.</p>
+            <p>Certificate is invalid: {result.error}</p>
           )}
         </div>
       )}

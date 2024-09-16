@@ -1,10 +1,27 @@
 const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const path = require('path');
+const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
+const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
-async function generateCertificate(name, course, date, logoPath, certificateType, issuer, additionalInfo, signatures) {
-  return new Promise((resolve, reject) => {
+const s3Client = new S3Client({
+  region: process.env.MYCERT_AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.MYCERT_AWS_SECRET_ACCESS_KEY
+  }
+});
+
+const s3 = new AWS.S3({
+  accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.MYCERT_AWS_SECRET_ACCESS_KEY,
+  region: process.env.MYCERT_AWS_REGION
+});
+
+async function generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures) {
+  return new Promise(async (resolve, reject) => {
+    const uniqueId = uuidv4(); // Generate uniqueId here
+
     const doc = new PDFDocument({
       layout: 'landscape',
       size: 'A4',
@@ -13,18 +30,37 @@ async function generateCertificate(name, course, date, logoPath, certificateType
 
     const buffers = [];
     doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => {
-      const pdfData = Buffer.concat(buffers);
-      resolve(pdfData);
+    doc.on('end', async () => {
+      const pdfBuffer = Buffer.concat(buffers);
+      
+      try {
+        await uploadToS3(pdfBuffer, `certificates/${uniqueId}.pdf`, 'application/pdf');
+        await storeCertificateData(uniqueId, name);
+        const url = await generatePresignedUrl(`certificates/${uniqueId}.pdf`);
+        resolve({ 
+          id: uniqueId, 
+          url: url
+        });
+      } catch (error) {
+        reject(error);
+      }
     });
 
-    // Generate unique ID
-    const uniqueId = uuidv4();
+    try {
+      // Load custom fonts
+      const headingFont = await getFileFromS3('fonts/Montserrat-Bold.ttf');
+      const subHeadingFont = await getFileFromS3('fonts/Montserrat-Medium.ttf');
+      const textFont = await getFileFromS3('fonts/Montserrat-Regular.ttf');
 
-    // Load custom fonts
-    doc.registerFont('Heading', path.join(__dirname, 'fonts', 'Montserrat-Bold.ttf'));
-    doc.registerFont('SubHeading', path.join(__dirname, 'fonts', 'Montserrat-Medium.ttf'));
-    doc.registerFont('Text', path.join(__dirname, 'fonts', 'Montserrat-Regular.ttf'));
+      doc.registerFont('Heading', headingFont);
+      doc.registerFont('SubHeading', subHeadingFont);
+      doc.registerFont('Text', textFont);
+    } catch (error) {
+      console.error('Error loading custom fonts:', error);
+      // Use fallback fonts if custom fonts fail to load
+      doc.font('Helvetica-Bold');
+      doc.font('Helvetica');
+    }
 
     // Background color
     doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f5f5f5');
@@ -76,8 +112,8 @@ async function generateCertificate(name, course, date, logoPath, certificateType
     }
 
     // Add logo if provided
-    if (logoPath) {
-      doc.image(logoPath, 700, 50, { width: 100 });
+    if (logoBuffer) {
+      doc.image(logoBuffer, 700, 50, { width: 100 });
     }
 
     // Add signatures
@@ -127,18 +163,53 @@ async function generateCertificate(name, course, date, logoPath, certificateType
        .text(`Certificate ID: ${uniqueId}`, 0, idY, { align: 'center', width: pageWidth });
 
     doc.end();
-
-    // Store certificate data for verification
-    storeCertificateData(uniqueId, name);
   });
 }
 
-function storeCertificateData(id, name) {
-  // In a real application, you would store this in a database
-  // For this example, we'll use a simple JSON file
-  const data = JSON.parse(fs.readFileSync('certificates.json', 'utf8'));
-  data[id] = name;
-  fs.writeFileSync('certificates.json', JSON.stringify(data));
+async function uploadToS3(buffer, key, contentType) {
+  const command = new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType
+  });
+  return s3Client.send(command);
+}
+
+async function getFileFromS3(key) {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key
+    });
+    const response = await s3Client.send(command);
+    return await streamToBuffer(response.Body);
+  } catch (error) {
+    console.error(`Error fetching file ${key} from S3:`, error);
+    throw error;
+  }
+}
+
+async function streamToBuffer(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.on('error', reject);
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+  });
+}
+
+async function generatePresignedUrl(key) {
+  const command = new GetObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key
+  });
+  return getSignedUrl(s3Client, command, { expiresIn: 3600 }); // URL expires in 1 hour
+}
+
+async function storeCertificateData(id, name) {
+  const data = JSON.stringify({ id, name });
+  await uploadToS3(Buffer.from(data), `certificates/${id}.json`, 'application/json');
 }
 
 module.exports = { generateCertificate };
