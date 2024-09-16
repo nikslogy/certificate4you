@@ -2,7 +2,6 @@ const { generateCertificate } = require('../../backend/certificateGenerator');
 const { v4: uuidv4 } = require('uuid');
 const { s3, S3_BUCKET_NAME } = require('./config');
 
-
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -10,8 +9,17 @@ exports.handler = async (event, context) => {
 
   try {
     console.log('Received event:', event);
-    const { name, course, date, certificateType, issuer, additionalInfo, signatures } = JSON.parse(event.body);
+    let parsedBody;
+    if (event.isBase64Encoded) {
+      const decodedBody = Buffer.from(event.body, 'base64').toString('utf-8');
+      parsedBody = JSON.parse(decodedBody);
+    } else {
+      parsedBody = JSON.parse(event.body);
+    }
+    
+    const { name, course, date, certificateType, issuer, additionalInfo, signatures } = parsedBody;
     console.log('Parsed data:', { name, course, date, certificateType, issuer, additionalInfo, signatures });
+
     const logoBuffer = event.isBase64Encoded ? Buffer.from(event.body, 'base64') : null;
 
     const uniqueId = uuidv4();
