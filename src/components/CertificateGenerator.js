@@ -76,7 +76,7 @@ function CertificateGenerator() {
   
     const sendRequest = async () => {
       try {
-        const response = await fetch('/.netlify/functions/generate-certificate', {
+        const response = await fetch('https://certificate4you.com/.netlify/functions/generate-certificate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

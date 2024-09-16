@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ContactUs from './components/ContactUs';
 import { HashRouter as Router, Route, Routes, NavLink } from 'react-router-dom';
 import Home from './components/Home';
 import ApiGuide from './components/ApiGuide';
@@ -22,7 +23,7 @@ function App() {
       <div className="App">
         <nav className={`navbar ${menuOpen ? 'open' : ''}`}>
           <div className="navbar-logo">
-            <NavLink to="/" onClick={closeMenu}>MyCertificate</NavLink>
+            <NavLink to="/" onClick={closeMenu}>Certificate4You</NavLink>
           </div>
           <div className="navbar-toggle" onClick={toggleMenu}>
             <span></span>
@@ -34,6 +35,7 @@ function App() {
             <li><NavLink to="/api-guide" onClick={closeMenu}>API Guide</NavLink></li>
             <li><NavLink to="/generate" onClick={closeMenu}>Generate Certificate</NavLink></li>
             <li><NavLink to="/verify" onClick={closeMenu}>Verify Certificate</NavLink></li>
+            <li><NavLink to="/contact" onClick={closeMenu}>Contact Us</NavLink></li>
           </ul>
         </nav>
 
@@ -43,6 +45,7 @@ function App() {
             <Route path="/api-guide" element={<ApiGuide />} />
             <Route path="/generate" element={<CertificateGenerator />} />
             <Route path="/verify" element={<CertificateVerifier />} />
+            <Route path="/contact" element={<ContactUs />} />
           </Routes>
         </main>
       </div>

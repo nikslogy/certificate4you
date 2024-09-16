@@ -25,7 +25,7 @@ function ApiGuide() {
       }
     ]
   }' \\
-  https://certificate4you.netlify.app/.netlify/functions/generate-certificate`;
+  https://certificate4you.com/.netlify/functions/generate-certificate`;;
 
   const javascriptExample = `const certificateData = {
   name: 'John Doe',
@@ -47,8 +47,7 @@ function ApiGuide() {
   ]
 };
 
-fetch('https://certificate4you.netlify.app/.netlify/functions/generate-certificate', {
-  method: 'POST',
+fetch('https://certificate4you.com/.netlify/functions/generate-certificate', {  method: 'POST',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -67,7 +66,7 @@ fetch('https://certificate4you.netlify.app/.netlify/functions/generate-certifica
   const pythonExample = `import requests
 import json
 
-url = 'https://certificate4you.netlify.app/.netlify/functions/generate-certificate'
+url = 'https://certificate4you.com/.netlify/functions/generate-certificate'
 data = {
     'name': 'John Doe',
     'course': 'Advanced Web Development',
@@ -113,7 +112,7 @@ else:
         <h2>Endpoint</h2>
         <div className="code-block">
           <SyntaxHighlighter language="http" style={solarizedlight}>
-            POST https://certificate4you.netlify.app/.netlify/functions/generate-certificate
+          POST https://certificate4you.com/.netlify/functions/generate-certificate
           </SyntaxHighlighter>
         </div>
       </section>

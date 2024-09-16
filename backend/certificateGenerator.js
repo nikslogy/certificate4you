@@ -153,9 +153,7 @@ async function generateCertificate(name, course, date, logoBuffer, certificateTy
     doc.font('Text')
        .fontSize(10)
        .fillColor('#999')
-       .text(`Certificate ID: ${uniqueId}`, 0, idY, { align: 'center', width: pageWidth });
-
-    doc.end();
+       .text(`Certificate ID: ${uniqueId}`, 0, idY, { align: 'center', width: pageWidth, link: 'https://certificate4you.com/#/verify' });    doc.end();
   });
 }
 
