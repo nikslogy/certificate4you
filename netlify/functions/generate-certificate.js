@@ -9,11 +9,15 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    console.log('Received event:', event);
     const { name, course, date, certificateType, issuer, additionalInfo, signatures } = JSON.parse(event.body);
+    console.log('Parsed data:', { name, course, date, certificateType, issuer, additionalInfo, signatures });
     const logoBuffer = event.isBase64Encoded ? Buffer.from(event.body, 'base64') : null;
 
     const uniqueId = uuidv4();
+    console.log('Generated uniqueId:', uniqueId);
     const result = await generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures);
+    console.log('Certificate generation result:', result);
 
     return {
       statusCode: 200,
@@ -21,7 +25,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ id: result.id, url: result.url })
     };
   } catch (error) {
-    console.error('Error generating certificate:', error);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate certificate' }) };
+    console.error('Detailed error:', error);
+    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate certificate', details: error.message, stack: error.stack }) };
   }
 };

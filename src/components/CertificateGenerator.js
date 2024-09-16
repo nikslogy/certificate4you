@@ -81,7 +81,9 @@ function CertificateGenerator() {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
       }
       
       const result = await response.json();
@@ -92,7 +94,7 @@ function CertificateGenerator() {
       }
     } catch (error) {
       console.error('Error generating certificate:', error);
-      setError('Failed to generate certificate. Please try again.');
+      setError(`Failed to generate certificate. Error: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
