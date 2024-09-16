@@ -65,38 +65,67 @@ function CertificateGenerator() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-
-    const formDataToSend = new FormData();
-    Object.keys(formData).forEach(key => formDataToSend.append(key, formData[key]));
-    if (logo) formDataToSend.append('logo', logo);
-    signatures.forEach((sig, index) => {
-      formDataToSend.append(`signatureName${index + 1}`, sig.name);
-      formDataToSend.append(`signature${index + 1}`, sig.type === 'draw' ? sigPads.current[index].toDataURL() : sig.image);
-    });
-
-    try {
-      const response = await fetch('/.netlify/functions/generate-certificate', {
-        method: 'POST',
-        body: formDataToSend,
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+  
+    const dataToSend = {
+      ...formData,
+      signatures: signatures.map((sig, index) => ({
+        name: sig.name,
+        image: sig.type === 'draw' ? sigPads.current[index].toDataURL() : sig.image
+      }))
+    };
+  
+    if (logo) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        dataToSend.logo = event.target.result.split(',')[1]; // Get base64 data
+  
+        try {
+          const response = await fetch('/.netlify/functions/generate-certificate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend),
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+          }
+          
+          const result = await response.json();
+          if (result.url) {
+            window.open(result.url, '_blank');
+          } else {
+            throw new Error('No URL returned from server');
+          }
+        } catch (error) {
+          console.error('Error generating certificate:', error);
+          setError(`Failed to generate certificate. Error: ${error.message}`);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      reader.readAsDataURL(logo);
+    } else {
+      // If no logo, send the data without it
+      try {
+        const response = await fetch('/.netlify/functions/generate-certificate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(dataToSend),
+        });
+        
+        // ... (rest of the error handling and response processing)
+      } catch (error) {
+        console.error('Error generating certificate:', error);
+        setError(`Failed to generate certificate. Error: ${error.message}`);
+      } finally {
+        setIsLoading(false);
       }
-      
-      const result = await response.json();
-      if (result.url) {
-        window.open(result.url, '_blank');
-      } else {
-        throw new Error('No URL returned from server');
-      }
-    } catch (error) {
-      console.error('Error generating certificate:', error);
-      setError(`Failed to generate certificate. Error: ${error.message}`);
-    } finally {
-      setIsLoading(false);
     }
   };
 

@@ -10,17 +10,18 @@ exports.handler = async (event, context) => {
   try {
     console.log('Received event:', event);
     let parsedBody;
+
     if (event.isBase64Encoded) {
       const decodedBody = Buffer.from(event.body, 'base64').toString('utf-8');
-      parsedBody = JSON.parse(decodedBody);
+      parsedBody = parseBody(decodedBody);
     } else {
-      parsedBody = JSON.parse(event.body);
+      parsedBody = parseBody(event.body);
     }
-    
-    const { name, course, date, certificateType, issuer, additionalInfo, signatures } = parsedBody;
-    console.log('Parsed data:', { name, course, date, certificateType, issuer, additionalInfo, signatures });
 
-    const logoBuffer = event.isBase64Encoded ? Buffer.from(event.body, 'base64') : null;
+    console.log('Parsed body:', parsedBody);
+
+    const { name, course, date, certificateType, issuer, additionalInfo, signatures } = parsedBody;
+    const logoBuffer = parsedBody.logo ? Buffer.from(parsedBody.logo, 'base64') : null;
 
     const uniqueId = uuidv4();
     console.log('Generated uniqueId:', uniqueId);
@@ -37,3 +38,17 @@ exports.handler = async (event, context) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate certificate', details: error.message, stack: error.stack }) };
   }
 };
+
+function parseBody(body) {
+  try {
+    return JSON.parse(body);
+  } catch (error) {
+    // If JSON parsing fails, assume it's form data
+    const formData = {};
+    body.split('&').forEach(pair => {
+      const [key, value] = pair.split('=');
+      formData[decodeURIComponent(key)] = decodeURIComponent(value);
+    });
+    return formData;
+  }
+}
