@@ -9,6 +9,7 @@
 body {
   font-family: 'Poppins', sans-serif;
   background-color: #f5f7fa;
+  margin: 0;
 }
 
 .App {
@@ -18,33 +19,37 @@ body {
 }
 
 .navbar {
-  background-color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1000;
 }
 
 .navbar-logo a {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #333;
   text-decoration: none;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
 }
 
 .navbar-links {
   display: flex;
   list-style-type: none;
+  margin: 0;
+  padding: 0;
 }
 
 .navbar-links li {
-  margin-left: 1.5rem;
+  margin-left: 2rem;
 }
 
 .navbar-links a {
-  color: #333;
   text-decoration: none;
+  color: #333;
   font-weight: 500;
   transition: color 0.3s ease;
 }
@@ -61,10 +66,11 @@ body {
 }
 
 .navbar-toggle span {
-  width: 25px;
   height: 3px;
+  width: 25px;
   background-color: #333;
-  margin: 2px 0;
+  margin-bottom: 4px;
+  border-radius: 2px;
   transition: all 0.3s ease;
 }
 
@@ -74,44 +80,34 @@ body {
 }
 
 @media (max-width: 768px) {
-  .navbar-links {
-    display: none;
-    flex-direction: column;
-    position: absolute;
-    top: 60px;
-    left: 0;
-    width: 100%;
-    background-color: #ffffff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .navbar-links.open {
-    display: flex;
-  }
-
-  .navbar-links li {
-    margin: 0;
-    text-align: center;
-  }
-
-  .navbar-links a {
-    display: block;
-    padding: 1rem;
-  }
-
   .navbar-toggle {
     display: flex;
   }
 
-  .navbar.open .navbar-toggle span:nth-child(1) {
-    transform: rotate(45deg) translate(5px, 5px);
+  .navbar-links {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 1000;
   }
 
-  .navbar.open .navbar-toggle span:nth-child(2) {
-    opacity: 0;
+  .navbar-links.open {
+    transform: translateX(0);
   }
 
-  .navbar.open .navbar-toggle span:nth-child(3) {
-    transform: rotate(-45deg) translate(5px, -5px);
+  .navbar-links li {
+    margin: 1rem 0;
+  }
+
+  .main-content {
+    padding: 1rem;
   }
 }

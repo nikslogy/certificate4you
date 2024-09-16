@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
-import ContactUs from './components/ContactUs';
+import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Route, Routes, NavLink } from 'react-router-dom';
 import Home from './components/Home';
 import ApiGuide from './components/ApiGuide';
 import CertificateGenerator from './components/CertificateGenerator';
 import CertificateVerifier from './components/CertificateVerifier';
+import ContactUs from './components/ContactUs';
 import './App.css';
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -18,10 +19,28 @@ function App() {
     setMenuOpen(false);
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        closeMenu();
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
+
   return (
     <Router>
       <div className="App">
-        <nav className={`navbar ${menuOpen ? 'open' : ''}`}>
+        <nav className={`navbar ${menuOpen ? 'open' : ''}`} ref={menuRef}>
           <div className="navbar-logo">
             <NavLink to="/" onClick={closeMenu}>Certificate4You</NavLink>
           </div>
