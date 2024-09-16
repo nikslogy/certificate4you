@@ -75,7 +75,7 @@ function CertificateGenerator() {
     });
 
     try {
-      const response = await fetch('/api/generate-certificate', {
+      const response = await fetch('/.netlify/functions/generate-certificate', {
         method: 'POST',
         body: formDataToSend,
       });

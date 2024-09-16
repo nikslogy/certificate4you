@@ -5,18 +5,18 @@ const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/clien
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const s3Client = new S3Client({
-  region: process.env.MYCERT_AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.MYCERT_AWS_SECRET_ACCESS_KEY
-  }
-});
-
-const s3 = new AWS.S3({
-  accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.MYCERT_AWS_SECRET_ACCESS_KEY,
-  region: process.env.MYCERT_AWS_REGION
-});
+   region: process.env.MYCERT_AWS_REGION,
+   credentials: {
+     accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
+     secretAccessKey: process.env.MYCERT_AWS_SECRET_ACCESS_KEY
+   }
+ });
+ 
+ const s3 = new AWS.S3({
+   accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
+   secretAccessKey: process.env.MYCERT_AWS_SECRET_ACCESS_KEY,
+   region: process.env.MYCERT_AWS_REGION
+ });
 
 async function generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures) {
   return new Promise(async (resolve, reject) => {

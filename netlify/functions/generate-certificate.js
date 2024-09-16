@@ -1,12 +1,7 @@
 const { generateCertificate } = require('../../backend/certificateGenerator');
 const { v4: uuidv4 } = require('uuid');
-const { s3 } = require('./config');
+const { s3, S3_BUCKET_NAME } = require('./config');
 
-const s3 = new AWS.S3({
-  accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.MYCERT_AWS_SECRET_ACCESS_KEY,
-  region: process.env.MYCERT_AWS_REGION
-});
 
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
