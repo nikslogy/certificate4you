@@ -74,58 +74,45 @@ function CertificateGenerator() {
       }))
     };
   
-    if (logo) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        dataToSend.logo = event.target.result.split(',')[1]; // Get base64 data
+    const sendRequest = async () => {
+      const response = await fetch('/.netlify/functions/generate-certificate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend),
+      });
   
-        try {
-          const response = await fetch('/.netlify/functions/generate-certificate', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dataToSend),
-          });
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Error response:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
-          }
-          
-          const result = await response.json();
-          if (result.url) {
-            window.open(result.url, '_blank');
-          } else {
-            throw new Error('No URL returned from server');
-          }
-        } catch (error) {
-          console.error('Error generating certificate:', error);
-          setError(`Failed to generate certificate. Error: ${error.message}`);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      reader.readAsDataURL(logo);
-    } else {
-      // If no logo, send the data without it
-      try {
-        const response = await fetch('/.netlify/functions/generate-certificate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(dataToSend),
-        });
-        
-        // ... (rest of the error handling and response processing)
-      } catch (error) {
-        console.error('Error generating certificate:', error);
-        setError(`Failed to generate certificate. Error: ${error.message}`);
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
       }
+  
+      const result = await response.json();
+      if (result.url) {
+        window.open(result.url, '_blank');
+      } else {
+        throw new Error('No URL returned from server');
+      }
+    };
+  
+    try {
+      if (logo) {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          dataToSend.logo = event.target.result.split(',')[1]; // Get base64 data
+          await sendRequest();
+        };
+        reader.readAsDataURL(logo);
+      } else {
+        await sendRequest();
+      }
+    } catch (error) {
+      console.error('Error generating certificate:', error);
+      setError(`Failed to generate certificate. Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
