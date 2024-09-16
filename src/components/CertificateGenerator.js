@@ -75,25 +75,32 @@ function CertificateGenerator() {
     };
   
     const sendRequest = async () => {
-      const response = await fetch('/.netlify/functions/generate-certificate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dataToSend),
-      });
+      try {
+        const response = await fetch('/.netlify/functions/generate-certificate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(dataToSend),
+        });
   
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
-      }
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+        }
   
-      const result = await response.json();
-      if (result.url) {
-        window.open(result.url, '_blank');
-      } else {
-        throw new Error('No URL returned from server');
+        const result = await response.json();
+        if (result.url) {
+          window.open(result.url, '_blank');
+        } else {
+          throw new Error('No URL returned from server');
+        }
+      } catch (error) {
+        console.error('Error generating certificate:', error);
+        setError(`Failed to generate certificate. Error: ${error.message}`);
+      } finally {
+        setIsLoading(false);
       }
     };
   
@@ -111,7 +118,6 @@ function CertificateGenerator() {
     } catch (error) {
       console.error('Error generating certificate:', error);
       setError(`Failed to generate certificate. Error: ${error.message}`);
-    } finally {
       setIsLoading(false);
     }
   };

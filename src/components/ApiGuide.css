@@ -1,5 +1,5 @@
 .api-guide {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 40px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -36,11 +36,15 @@
 }
 
 .api-guide pre {
-  background-color: #f0f0f0;
+  background-color: #282c34;
   padding: 15px;
   border-radius: 5px;
   overflow-x: auto;
   font-family: 'Courier New', Courier, monospace;
+}
+
+.table-container {
+  overflow-x: auto;
 }
 
 .api-guide table {
@@ -82,9 +86,23 @@
 }
 
 .code-examples {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 30px;
+}
+
+.code-example {
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.code-example h3 {
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 15px;
+  font-size: 18px;
 }
 
 .api-guide p {
@@ -98,5 +116,9 @@
 @media (max-width: 768px) {
   .api-guide {
     padding: 20px;
+  }
+  
+  .code-examples {
+    grid-template-columns: 1fr;
   }
 }
