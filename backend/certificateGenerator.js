@@ -29,7 +29,7 @@ async function generateCertificate(name, course, date, logoBuffer, certificateTy
       
       try {
         await uploadToS3(pdfBuffer, `certificates/${uniqueId}.pdf`, 'application/pdf');
-        await storeCertificateData(uniqueId, name);
+        await storeCertificateData(uniqueId, name, issuer);
         const url = await generatePresignedUrl(`certificates/${uniqueId}.pdf`);
         resolve({ 
           id: uniqueId, 
@@ -200,9 +200,15 @@ async function generatePresignedUrl(key) {
  }
  
 
-async function storeCertificateData(id, name) {
-  const data = JSON.stringify({ id, name });
-  await uploadToS3(Buffer.from(data), `certificates/${id}.json`, 'application/json');
+ async function storeCertificateData(uniqueId, name, issuer) {
+  const certificateData = {
+    id: uniqueId,
+    name: name,
+    issuer: issuer,
+    issuedAt: new Date().toISOString()
+  };
+
+  await uploadToS3(JSON.stringify(certificateData), `certificates/${uniqueId}.json`, 'application/json');
 }
 
 module.exports = { generateCertificate };

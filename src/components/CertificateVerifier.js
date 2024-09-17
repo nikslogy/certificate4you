@@ -17,6 +17,8 @@ function CertificateVerifier() {
       }
 
       setResult(data);
+      setResult(data);
+console.log('Certificate data:', data);
     } catch (error) {
       console.error('Error verifying certificate:', error);
       setResult({ error: error.message, isValid: false });
