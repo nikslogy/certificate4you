@@ -6,7 +6,7 @@ function ContactUs() {
     <div className="contact-us">
       <h1>Contact Us</h1>
       <p>For any inquiries, support, or bug reports, please email us at <a href="mailto:nikitpotdar@gmail.com">nikitpotdar@gmail.com</a> or fill out the form below:</p>
-      <form name="contact" method="POST" data-netlify="true">
+      <form name="contact" action="POST" data-netlify="true">
         <input type="hidden" name="form-name" value="contact" />
         <div className="form-group">
           <label htmlFor="name">Name</label>
@@ -34,6 +34,7 @@ function ContactUs() {
             required
           ></textarea>
         </div>
+        <div data-netlify-recaptcha="true"></div>
         <button type="submit">Send Message</button>
       </form>
     </div>
