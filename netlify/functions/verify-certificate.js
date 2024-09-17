@@ -27,7 +27,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...certificateData, pdfUrl, isValid: true })
+      body: JSON.stringify({ ...certificateData, pdfUrl, isValid: true, issuer: certificateData.issuer })
     };
   } catch (error) {
     console.error('Error verifying certificate:', error);

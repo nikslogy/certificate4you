@@ -11,11 +11,11 @@ function CertificateVerifier() {
     try {
       const response = await fetch(`/api/verify-certificate/${id}`);
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to verify certificate');
       }
-      
+
       setResult(data);
     } catch (error) {
       console.error('Error verifying certificate:', error);
@@ -46,6 +46,7 @@ function CertificateVerifier() {
             <div>
               <p>Certificate is valid.</p>
               <p>Name: {result.name}</p>
+              <p>Issuer: {result.issuer}</p>
               {result.pdfUrl && (
                 <a href={result.pdfUrl} target="_blank" rel="noopener noreferrer">
                   View Certificate

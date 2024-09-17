@@ -50,14 +50,17 @@ function App() {
             <span></span>
           </div>
           <ul className={`navbar-links ${menuOpen ? 'open' : ''}`}>
+            <li className="back-button" onClick={closeMenu}>
+              <i className="fas fa-arrow-left"></i> Back
+            </li>
             <li><NavLink to="/" onClick={closeMenu}>Home</NavLink></li>
             <li><NavLink to="/api-guide" onClick={closeMenu}>API Guide</NavLink></li>
             <li><NavLink to="/generate" onClick={closeMenu}>Generate Certificate</NavLink></li>
             <li><NavLink to="/verify" onClick={closeMenu}>Verify Certificate</NavLink></li>
-            <li><NavLink to="/contact" onClick={closeMenu}>Contact Us</NavLink></li>
+            <li><NavLink to="/contact" onClick={closeMenu}>Contact</NavLink></li>
           </ul>
         </nav>
-
+  
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Home />} />

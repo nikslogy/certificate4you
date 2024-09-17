@@ -17,13 +17,28 @@ function CertificateGenerator() {
   const [error, setError] = useState(null);
   const sigPads = useRef([]);
 
+  const validateFileType = (file) => {
+    const validTypes = ['image/jpeg', 'image/png'];
+    if (!validTypes.includes(file.type)) {
+      return false;
+    }
+    return true;
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prevData => ({ ...prevData, [name]: value }));
   };
 
   const handleLogoUpload = (e) => {
-    setLogo(e.target.files[0]);
+    const file = e.target.files[0];
+    if (file && validateFileType(file)) {
+      setLogo(file);
+      setError(null);
+    } else {
+      setError('Please upload a valid JPG or PNG file for the logo.');
+      e.target.value = null; // Reset the file input
+    }
   };
 
   const handleSignatureNameChange = (index, name) => {
@@ -41,13 +56,19 @@ function CertificateGenerator() {
 
   const handleSignatureUpload = (index, e) => {
     const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const newSignatures = [...signatures];
-      newSignatures[index].image = event.target.result;
-      setSignatures(newSignatures);
-    };
-    reader.readAsDataURL(file);
+    if (file && validateFileType(file)) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const newSignatures = [...signatures];
+        newSignatures[index].image = event.target.result;
+        setSignatures(newSignatures);
+      };
+      reader.readAsDataURL(file);
+      setError(null);
+    } else {
+      setError('Please upload a valid JPG or PNG file for the signature.');
+      e.target.value = null; // Reset the file input
+    }
   };
 
   const addSignatureField = () => {
