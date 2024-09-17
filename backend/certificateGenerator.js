@@ -29,7 +29,7 @@ async function generateCertificate(name, course, date, logoBuffer, certificateTy
       
       try {
         await uploadToS3(pdfBuffer, `certificates/${uniqueId}.pdf`, 'application/pdf');
-        await storeCertificateData(uniqueId, name, issuer);
+        await storeCertificateData(uniqueId, name, course, date, certificateType, issuer);
         const url = await generatePresignedUrl(`certificates/${uniqueId}.pdf`);
         resolve({ 
           id: uniqueId, 
@@ -200,10 +200,13 @@ async function generatePresignedUrl(key) {
  }
  
 
- async function storeCertificateData(uniqueId, name, issuer) {
+ async function storeCertificateData(uniqueId, name, course, date, certificateType, issuer) {
   const certificateData = {
     id: uniqueId,
     name: name,
+    course: course,
+    date: date,
+    certificateType: certificateType,
     issuer: issuer,
     issuedAt: new Date().toISOString()
   };

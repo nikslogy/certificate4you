@@ -2,25 +2,11 @@ import React from 'react';
 import './ContactUs.css';
 
 function ContactUs() {
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const myForm = event.target;
-    const formData = new FormData(myForm);
-  
-    fetch("/", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams(formData).toString(),
-    })
-      .then(() => console.log("Form successfully submitted"))
-      .catch((error) => alert(error));
-  };
-
   return (
     <div className="contact-us">
       <h1>Contact Us</h1>
       <p>For any inquiries, support, or bug reports, please email us at <a href="mailto:nikitpotdar@gmail.com">nikitpotdar@gmail.com</a> or fill out the form below:</p>
-      <form name="contact" method="POST" data-netlify="true" onSubmit={handleSubmit}>
+      <form name="contact" method="POST" data-netlify="true">
         <input type="hidden" name="form-name" value="contact" />
         <div className="form-group">
           <label htmlFor="name">Name</label>
