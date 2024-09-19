@@ -16,8 +16,8 @@ function CertificateGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState(null);
-  //const [isGenerating, setIsGenerating] = useState(false);
   const sigPads = useRef([]);
+  const topRef = useRef(null);
 
   const validateFileType = (file) => {
     const validTypes = ['image/jpeg', 'image/png'];
@@ -140,10 +140,14 @@ function CertificateGenerator() {
 
   useEffect(() => {
     console.log('generatedCertificateUrl changed:', generatedCertificateUrl);
+    if (generatedCertificateUrl && topRef.current) {
+      topRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [generatedCertificateUrl]);
 
   return (
     <div className="certificate-generator">
+      <div ref={topRef}></div>
       <h1>Generate Certificate</h1>
       {error && <div className="error-message">{error}</div>}
       {isLoading && <div className="loading-message">Generating certificate...</div>}
