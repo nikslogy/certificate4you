@@ -16,6 +16,7 @@ function CertificateGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const sigPads = useRef([]);
 
   const validateFileType = (file) => {
@@ -85,7 +86,7 @@ function CertificateGenerator() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsGenerating(true);
     setError(null);
     setGeneratedCertificateUrl(null);
 
@@ -116,10 +117,7 @@ function CertificateGenerator() {
       const result = await response.json();
       console.log('Received result:', result);
       if (result.url) {
-        setGeneratedCertificateUrl(prevUrl => {
-          console.log('Updating URL state:', result.url);
-          return result.url;
-        });
+        setGeneratedCertificateUrl(result.url);
       } else {
         throw new Error('No URL returned from server');
       }
@@ -127,7 +125,7 @@ function CertificateGenerator() {
       console.error('Error generating certificate:', error);
       setError(`Failed to generate certificate. Error: ${error.message}`);
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -148,6 +146,7 @@ function CertificateGenerator() {
     <div className="certificate-generator">
       <h1>Generate Certificate</h1>
       {error && <div className="error-message">{error}</div>}
+      {isGenerating && <div className="loading-message">Generating certificate...</div>}
       {generatedCertificateUrl && (
         <div className="success-message">
           <p>Certificate generated successfully!</p>
