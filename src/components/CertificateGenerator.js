@@ -15,6 +15,7 @@ function CertificateGenerator() {
   const [signatures, setSignatures] = useState([{ name: '', image: null, type: 'upload' }]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState(null);
   const sigPads = useRef([]);
 
   const validateFileType = (file) => {
@@ -86,67 +87,67 @@ function CertificateGenerator() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-  
+    setGeneratedCertificateUrl(null);
+
     const dataToSend = {
       ...formData,
+      logo: logo ? await fileToBase64(logo) : null,
       signatures: signatures.map((sig, index) => ({
         name: sig.name,
         image: sig.type === 'draw' ? sigPads.current[index].toDataURL() : sig.image
       }))
     };
-  
-    const sendRequest = async () => {
-      try {
-        const response = await fetch('https://certificate4you.com/.netlify/functions/generate-certificate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(dataToSend),
-        });
-  
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error response:', errorText);
-          throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
-        }
-  
-        const result = await response.json();
-        if (result.url) {
-          window.open(result.url, '_blank');
-        } else {
-          throw new Error('No URL returned from server');
-        }
-      } catch (error) {
-        console.error('Error generating certificate:', error);
-        setError(`Failed to generate certificate. Error: ${error.message}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
+
     try {
-      if (logo) {
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          dataToSend.logo = event.target.result.split(',')[1]; // Get base64 data
-          await sendRequest();
-        };
-        reader.readAsDataURL(logo);
+      const response = await fetch('https://certificate4you.com/.netlify/functions/generate-certificate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+      }
+
+      const result = await response.json();
+      if (result.url) {
+        setGeneratedCertificateUrl(result.url);
       } else {
-        await sendRequest();
+        throw new Error('No URL returned from server');
       }
     } catch (error) {
       console.error('Error generating certificate:', error);
       setError(`Failed to generate certificate. Error: ${error.message}`);
+    } finally {
       setIsLoading(false);
     }
+  };
+
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   return (
     <div className="certificate-generator">
       <h1>Generate Certificate</h1>
       {error && <div className="error-message">{error}</div>}
+      {generatedCertificateUrl && (
+        <div className="success-message">
+          <p>Certificate generated successfully!</p>
+          <button onClick={() => window.open(generatedCertificateUrl, '_blank')}>
+            Download Certificate
+          </button>
+        </div>
+      )}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="certificateType">Certificate Type</label>
