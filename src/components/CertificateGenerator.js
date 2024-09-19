@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import './CertificateGenerator.css';
 
@@ -114,8 +114,12 @@ function CertificateGenerator() {
       }
 
       const result = await response.json();
+      console.log('Received result:', result);
       if (result.url) {
-        setGeneratedCertificateUrl(result.url);
+        setGeneratedCertificateUrl(prevUrl => {
+          console.log('Updating URL state:', result.url);
+          return result.url;
+        });
       } else {
         throw new Error('No URL returned from server');
       }
@@ -135,6 +139,10 @@ function CertificateGenerator() {
       reader.onerror = (error) => reject(error);
     });
   };
+
+  useEffect(() => {
+    console.log('generatedCertificateUrl changed:', generatedCertificateUrl);
+  }, [generatedCertificateUrl]);
 
   return (
     <div className="certificate-generator">
