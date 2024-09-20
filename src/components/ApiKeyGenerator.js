@@ -51,41 +51,40 @@ function ApiKeyGenerator() {
     setIsLoading(true);
   
     try {
-      // First, check if the user already exists
-      const checkResponse = await fetch('/.netlify/functions/check-existing-user', {
+      const response = await fetch('/.netlify/functions/generate-api-key', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: formData.email }),
+        body: JSON.stringify(formData),
       });
   
-      const checkResult = await checkResponse.json();
-  
-      if (checkResponse.ok && checkResult.apiKey) {
-        // User already exists, use the existing API key
-        setApiKey(checkResult.apiKey);
-        setRemainingLimit(checkResult.remainingLimit);
-      } else {
-        // User doesn't exist, generate a new API key
-        const response = await fetch('/.netlify/functions/generate-api-key', {
+      if (response.ok) {
+        const result = await response.json();
+        setApiKey(result.apiKey);
+        setRemainingLimit(result.limit);
+      } else if (response.status === 400) {
+        // User already exists, fetch existing API key
+        const existingUserResponse = await fetch('/.netlify/functions/check-existing-user', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({ email: formData.email }),
         });
   
-        if (!response.ok) {
-          throw new Error('Failed to generate API key');
+        if (existingUserResponse.ok) {
+          const existingUserResult = await existingUserResponse.json();
+          setApiKey(existingUserResult.apiKey);
+          setRemainingLimit(existingUserResult.remainingLimit);
+        } else {
+          throw new Error('Failed to retrieve existing user data');
         }
-  
-        const result = await response.json();
-        setApiKey(result.apiKey);
-        setRemainingLimit(200); // Set initial limit for new users
+      } else {
+        throw new Error('Failed to generate API key');
       }
     } catch (error) {
-      setError('Failed to generate API key. Please try again.');
+      setError('Failed to generate or retrieve API key. Please try again.');
     } finally {
       setIsLoading(false);
     }

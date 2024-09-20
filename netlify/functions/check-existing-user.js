@@ -17,29 +17,28 @@ exports.handler = async (event, context) => {
   try {
     const { email } = JSON.parse(event.body);
 
-    const result = await dynamoDb.query({
+    const result = await dynamoDb.get({
         TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-        KeyConditionExpression: 'email = :email',
-        ExpressionAttributeValues: {
-          ':email': email,
-        },
+        Key: {
+          email: email
+        }
       });
-
-    if (result.Items && result.Items.length > 0) {
-      const user = result.Items[0];
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          apiKey: user.apiKey,
-          remainingLimit: user.limit - user.usageCount,
-        }),
-      };
-    } else {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ message: 'User not found' }),
-      };
-    }
+      
+      if (result.Item) {
+        const user = result.Item;
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            apiKey: user.apiKey,
+            remainingLimit: user.limit - user.usageCount,
+          }),
+        };
+      } else {
+        return {
+          statusCode: 404,
+          body: JSON.stringify({ message: 'User not found' }),
+        };
+      }
   } catch (error) {
     console.error('Error checking existing user:', error);
     return {

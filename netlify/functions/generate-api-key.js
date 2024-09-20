@@ -31,8 +31,8 @@ exports.handler = async (event, context) => {
         usageCount: 0,
         limit: 200,
       },
+      ConditionExpression: 'attribute_not_exists(email)'
     });
-
     return {
       statusCode: 200,
       body: JSON.stringify({ apiKey, limit: 200 }),
