@@ -4,6 +4,8 @@ import Home from './components/Home';
 import ApiGuide from './components/ApiGuide';
 import CertificateGenerator from './components/CertificateGenerator';
 import CertificateVerifier from './components/CertificateVerifier';
+import Pricing from './components/Pricing';
+import ApiKeyGenerator from './components/ApiKeyGenerator';
 import ContactUs from './components/ContactUs';
 import './App.css';
 
@@ -57,6 +59,8 @@ function App() {
             <li><NavLink to="/api-guide" onClick={closeMenu}>API Guide</NavLink></li>
             <li><NavLink to="/generate" onClick={closeMenu}>Generate Certificate</NavLink></li>
             <li><NavLink to="/verify" onClick={closeMenu}>Verify Certificate</NavLink></li>
+            <li><NavLink to="/pricing" onClick={closeMenu}>Pricing</NavLink></li>
+            <li><NavLink to="/api-key-generator" onClick={closeMenu}>Get free API Key</NavLink></li>
             <li><NavLink to="/contact" onClick={closeMenu}>Contact</NavLink></li>
           </ul>
         </nav>
@@ -67,6 +71,8 @@ function App() {
             <Route path="/api-guide" element={<ApiGuide />} />
             <Route path="/generate" element={<CertificateGenerator />} />
             <Route path="/verify" element={<CertificateVerifier />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/api-key-generator" element={<ApiKeyGenerator />} />
             <Route path="/contact" element={<ContactUs />} />
           </Routes>
         </main>

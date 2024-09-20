@@ -18,6 +18,7 @@ function CertificateGenerator() {
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState(null);
   const sigPads = useRef([]);
   const topRef = useRef(null);
+  const [apiKey, setApiKey] = useState('');
 
   const validateFileType = (file) => {
     const validTypes = ['image/jpeg', 'image/png'];
@@ -89,7 +90,7 @@ function CertificateGenerator() {
     setIsLoading(true);
     setError(null);
     setGeneratedCertificateUrl(null);
-
+  
     const dataToSend = {
       ...formData,
       logo: logo ? await fileToBase64(logo) : null,
@@ -98,12 +99,13 @@ function CertificateGenerator() {
         image: sig.type === 'draw' ? sigPads.current[index].toDataURL() : sig.image
       }))
     };
-
+  
     try {
       const response = await fetch('https://certificate4you.com/.netlify/functions/generate-certificate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
         },
         body: JSON.stringify(dataToSend),
       });
@@ -146,6 +148,7 @@ function CertificateGenerator() {
   }, [generatedCertificateUrl]);
 
   return (
+
     <div className="certificate-generator">
       <div ref={topRef}></div>
       <h1>Generate Certificate</h1>
@@ -159,6 +162,17 @@ function CertificateGenerator() {
           </button>
         </div>
       )}
+      <div className="form-group">
+        <label htmlFor="apiKey">API Key</label>
+        <input
+          type="text"
+          id="apiKey"
+          name="apiKey"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          required
+        />
+      </div>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="certificateType">Certificate Type</label>
@@ -274,7 +288,7 @@ function CertificateGenerator() {
               ) : (
                 <SignatureCanvas
                   ref={(ref) => sigPads.current[index] = ref}
-                  canvasProps={{width: 300, height: 150, className: 'signature-canvas'}}
+                  canvasProps={{ width: 300, height: 150, className: 'signature-canvas' }}
                 />
               )}
               {index > 0 && (

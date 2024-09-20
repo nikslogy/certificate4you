@@ -2,6 +2,16 @@ const { generateCertificate } = require('../../backend/certificateGenerator');
 const { v4: uuidv4 } = require('uuid');
 const { s3, S3_BUCKET_NAME } = require('./config');
 const cors = require('cors')({ origin: true });
+const { DynamoDB } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocument } = require("@aws-sdk/lib-dynamodb");
+
+const dynamoDb = DynamoDBDocument.from(new DynamoDB({
+  region: process.env.MYCERT_AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.MYCERT_AWS_SECRET_ACCESS_KEY,
+  },
+}));
 
 exports.handler = async (event, context) => {
   // Handle preflight OPTIONS request
@@ -10,7 +20,7 @@ exports.handler = async (event, context) => {
       statusCode: 204,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
       },
     };
@@ -25,6 +35,13 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    const apiKey = event.headers['x-api-key'];
+    if (!apiKey) {
+      throw new Error('API key is required');
+    }
+
+    await validateApiKey(apiKey);
+
     console.log('Received event:', event);
     let parsedBody = parseBody(event.body);
     console.log('Parsed body:', parsedBody);
@@ -48,12 +65,36 @@ exports.handler = async (event, context) => {
   } catch (error) {
     console.error('Detailed error:', error);
     return { 
-      statusCode: 500, 
+      statusCode: error.message === 'Invalid API key' || error.message === 'API key usage limit exceeded' ? 403 : 500,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: 'Failed to generate certificate', details: error.message, stack: error.stack }) 
+      body: JSON.stringify({ error: error.message, details: error.stack })
     };
   }
 };
+
+async function validateApiKey(apiKey) {
+  const result = await dynamoDb.get({
+    TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+    Key: { apiKey },
+  });
+
+  if (!result.Item) {
+    throw new Error('Invalid API key');
+  }
+
+  if (result.Item.usageCount >= result.Item.limit) {
+    throw new Error('API key usage limit exceeded');
+  }
+
+  await dynamoDb.update({
+    TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+    Key: { apiKey },
+    UpdateExpression: 'SET usageCount = usageCount + :inc',
+    ExpressionAttributeValues: { ':inc': 1 },
+  });
+
+  return result.Item;
+}
 
 function parseBody(body) {
   try {
