@@ -23,9 +23,9 @@ exports.handler = async (event, context) => {
     await dynamoDb.put({
       TableName: process.env.DYNAMODB_API_KEYS_TABLE,
       Item: {
+        email,
         apiKey,
         name,
-        email,
         reason,
         createdAt: timestamp,
         usageCount: 0,

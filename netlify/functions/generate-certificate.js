@@ -73,14 +73,19 @@ exports.handler = async (event, context) => {
 };
 
 async function validateApiKey(apiKey) {
-  const result = await dynamoDb.get({
+  const result = await dynamoDb.query({
     TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-    Key: { apiKey },
+    IndexName: 'apiKey-index',
+    KeyConditionExpression: 'apiKey = :apiKey',
+    ExpressionAttributeValues: {
+      ':apiKey': apiKey,
+    },
   });
-
-  if (!result.Item) {
+  
+  if (!result.Items || result.Items.length === 0) {
     throw new Error('Invalid API key');
   }
+  const user = result.Items[0];
 
   if (result.Item.usageCount >= result.Item.limit) {
     throw new Error('API key usage limit exceeded');
@@ -88,7 +93,7 @@ async function validateApiKey(apiKey) {
 
   await dynamoDb.update({
     TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-    Key: { apiKey },
+    Key: { email: user.email, apiKey: apiKey },
     UpdateExpression: 'SET usageCount = usageCount + :inc',
     ExpressionAttributeValues: { ':inc': 1 },
   });
