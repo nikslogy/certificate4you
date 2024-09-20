@@ -35,7 +35,7 @@ exports.handler = async (event, context) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ apiKey }),
+      body: JSON.stringify({ apiKey, limit: 200 }),
     };
   } catch (error) {
     console.error('Detailed error:', error);

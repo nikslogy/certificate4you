@@ -11,6 +11,7 @@ function ApiKeyGenerator() {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [remainingLimit, setRemainingLimit] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const checkExistingUser = useCallback(async () => {
     if (!formData.email) return;
@@ -48,23 +49,41 @@ function ApiKeyGenerator() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-
+  
     try {
-      const response = await fetch('/.netlify/functions/generate-api-key', {
+      // First, check if the user already exists
+      const checkResponse = await fetch('/.netlify/functions/check-existing-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ email: formData.email }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate API key');
+  
+      const checkResult = await checkResponse.json();
+  
+      if (checkResponse.ok && checkResult.apiKey) {
+        // User already exists, use the existing API key
+        setApiKey(checkResult.apiKey);
+        setRemainingLimit(checkResult.remainingLimit);
+      } else {
+        // User doesn't exist, generate a new API key
+        const response = await fetch('/.netlify/functions/generate-api-key', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to generate API key');
+        }
+  
+        const result = await response.json();
+        setApiKey(result.apiKey);
+        setRemainingLimit(200); // Set initial limit for new users
       }
-
-      const result = await response.json();
-      setApiKey(result.apiKey);
-      setRemainingLimit(result.limit);
     } catch (error) {
       setError('Failed to generate API key. Please try again.');
     } finally {
@@ -74,7 +93,8 @@ function ApiKeyGenerator() {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(apiKey);
-    alert('API Key copied to clipboard!');
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 3000); // Hide message after 3 seconds
   };
 
   const downloadApiKey = () => {
@@ -95,13 +115,14 @@ function ApiKeyGenerator() {
         <div className="loading-message">Generating API Key, please wait...</div>
       ) : apiKey ? (
         <div className="success-message">
-          <p>Your API Key: <strong>{apiKey}</strong></p>
-          <p>Remaining limit: {remainingLimit} certificates</p>
-          <div className="api-key-actions">
-            <button onClick={copyToClipboard}>Copy to Clipboard</button>
-            <button onClick={downloadApiKey}>Download API Key</button>
-          </div>
-        </div>
+  <p>Your API Key: <strong>{apiKey}</strong></p>
+  <p>You can generate up to {remainingLimit} certificates with this key.</p>
+  {copySuccess && <p className="copy-success">API Key copied to clipboard!</p>}
+  <div className="api-key-actions">
+    <button onClick={copyToClipboard}>Copy to Clipboard</button>
+    <button onClick={downloadApiKey}>Download API Key</button>
+  </div>
+</div>
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="form-group">
