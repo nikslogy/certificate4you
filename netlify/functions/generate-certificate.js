@@ -87,7 +87,7 @@ async function validateApiKey(apiKey) {
   }
   const user = result.Items[0];
 
-  if (result.Item.usageCount >= result.Item.limit) {
+  if (user.usageCount >= user.limit) {
     throw new Error('API key usage limit exceeded');
   }
 
@@ -98,7 +98,7 @@ async function validateApiKey(apiKey) {
     ExpressionAttributeValues: { ':inc': 1 },
   });
 
-  return result.Item;
+  return user;
 }
 
 function parseBody(body) {
