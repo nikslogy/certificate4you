@@ -17,13 +17,13 @@ exports.handler = async (event, context) => {
   try {
     const { email } = JSON.parse(event.body);
 
-    const result = await dynamoDb.scan({
-      TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-      FilterExpression: 'email = :email',
-      ExpressionAttributeValues: {
-        ':email': email,
-      },
-    });
+    const result = await dynamoDb.query({
+        TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+        KeyConditionExpression: 'email = :email',
+        ExpressionAttributeValues: {
+          ':email': email,
+        },
+      });
 
     if (result.Items && result.Items.length > 0) {
       const user = result.Items[0];
