@@ -58,7 +58,7 @@ exports.handler = async (event, context) => {
           Data: "Your Certificate4You API Key",
         },
       },
-      Source: "hello.certificate4you@gmail.com", // Replace with your verified SES email
+      Source: "hello.certificate4you@gmail.com",
     };
 
     const command = new SendEmailCommand(params);
@@ -72,7 +72,7 @@ exports.handler = async (event, context) => {
     console.error('Error sending API key email:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to send API key email' }),
+      body: JSON.stringify({ error: 'Failed to send API key email', details: error.message }),
     };
   }
 };
