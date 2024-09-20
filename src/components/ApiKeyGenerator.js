@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import './ApiKeyGenerator.css';
 
 function ApiKeyGenerator() {
@@ -12,33 +12,7 @@ function ApiKeyGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [remainingLimit, setRemainingLimit] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
-
-  const checkExistingUser = useCallback(async () => {
-    if (!formData.email) return;
-    try {
-      const response = await fetch('/.netlify/functions/check-existing-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: formData.email }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.apiKey) {
-          setApiKey(result.apiKey);
-          setRemainingLimit(result.remainingLimit);
-        }
-      }
-    } catch (error) {
-      console.error('Error checking existing user:', error);
-    }
-  }, [formData.email]);
-
-  useEffect(() => {
-    checkExistingUser();
-  }, [checkExistingUser, formData.email]);
+  const [showSendToEmail, setShowSendToEmail] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -49,7 +23,8 @@ function ApiKeyGenerator() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-  
+    setShowSendToEmail(false);
+
     try {
       const response = await fetch('/.netlify/functions/generate-api-key', {
         method: 'POST',
@@ -58,33 +33,45 @@ function ApiKeyGenerator() {
         },
         body: JSON.stringify(formData),
       });
-  
+
       if (response.ok) {
         const result = await response.json();
         setApiKey(result.apiKey);
         setRemainingLimit(result.limit);
       } else if (response.status === 400) {
-        // User already exists, fetch existing API key
-        const existingUserResponse = await fetch('/.netlify/functions/check-existing-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email: formData.email }),
-        });
-  
-        if (existingUserResponse.ok) {
-          const existingUserResult = await existingUserResponse.json();
-          setApiKey(existingUserResult.apiKey);
-          setRemainingLimit(existingUserResult.remainingLimit);
-        } else {
-          throw new Error('Failed to retrieve existing user data');
-        }
+        // User already exists
+        setShowSendToEmail(true);
       } else {
         throw new Error('Failed to generate API key');
       }
     } catch (error) {
-      setError('Failed to generate or retrieve API key. Please try again.');
+      setError('Failed to process your request. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendApiKeyToEmail = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/.netlify/functions/send-api-key-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      if (response.ok) {
+        setShowSendToEmail(false);
+        setApiKey('API key sent to your email');
+      } else {
+        throw new Error('Failed to send API key to email');
+      }
+    } catch (error) {
+      setError('Failed to send API key to email. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +80,7 @@ function ApiKeyGenerator() {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(apiKey);
     setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 3000); // Hide message after 3 seconds
+    setTimeout(() => setCopySuccess(false), 3000);
   };
 
   const downloadApiKey = () => {
@@ -111,17 +98,22 @@ function ApiKeyGenerator() {
       <h1>Get Your Free API Key</h1>
       {error && <div className="error-message">{error}</div>}
       {isLoading ? (
-        <div className="loading-message">Generating API Key, please wait...</div>
+        <div className="loading-message">Processing your request, please wait...</div>
       ) : apiKey ? (
         <div className="success-message">
-  <p>Your API Key: <strong>{apiKey}</strong></p>
-  <p>You can generate up to {remainingLimit} certificates with this key.</p>
-  {copySuccess && <p className="copy-success">API Key copied to clipboard!</p>}
-  <div className="api-key-actions">
-    <button onClick={copyToClipboard}>Copy to Clipboard</button>
-    <button onClick={downloadApiKey}>Download API Key</button>
-  </div>
-</div>
+          <p>Your API Key: <strong>{apiKey}</strong></p>
+          {remainingLimit && <p>You can generate up to {remainingLimit} certificates with this key.</p>}
+          {copySuccess && <p className="copy-success">API Key copied to clipboard!</p>}
+          <div className="api-key-actions">
+            <button onClick={copyToClipboard}>Copy to Clipboard</button>
+            <button onClick={downloadApiKey}>Download API Key</button>
+          </div>
+        </div>
+      ) : showSendToEmail ? (
+        <div className="existing-user-message">
+          <p>An API key already exists for this email.</p>
+          <button onClick={sendApiKeyToEmail}>Send API Key to Email</button>
+        </div>
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="form-group">

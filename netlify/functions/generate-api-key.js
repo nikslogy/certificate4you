@@ -38,6 +38,12 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ apiKey, limit: 200 }),
     };
   } catch (error) {
+    if (error.name === 'ConditionalCheckFailedException') {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'User already exists' }),
+      };
+    }
     console.error('Detailed error:', error);
     return {
       statusCode: 500,
