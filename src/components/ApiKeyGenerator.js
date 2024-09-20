@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ApiKeyGenerator.css';
 
 function ApiKeyGenerator() {
@@ -9,6 +9,34 @@ function ApiKeyGenerator() {
   });
   const [apiKey, setApiKey] = useState(null);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [remainingLimit, setRemainingLimit] = useState(null);
+
+  useEffect(() => {
+    checkExistingUser();
+  }, []);
+
+  const checkExistingUser = async () => {
+    try {
+      const response = await fetch('/.netlify/functions/check-existing-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.apiKey) {
+          setApiKey(result.apiKey);
+          setRemainingLimit(result.remainingLimit);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking existing user:', error);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -18,7 +46,7 @@ function ApiKeyGenerator() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setApiKey(null);
+    setIsLoading(true);
 
     try {
       const response = await fetch('/.netlify/functions/generate-api-key', {
@@ -35,19 +63,43 @@ function ApiKeyGenerator() {
 
       const result = await response.json();
       setApiKey(result.apiKey);
+      setRemainingLimit(result.limit);
     } catch (error) {
       setError('Failed to generate API key. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(apiKey);
+    alert('API Key copied to clipboard!');
+  };
+
+  const downloadApiKey = () => {
+    const element = document.createElement('a');
+    const file = new Blob([apiKey], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = 'api_key.txt';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   return (
     <div className="api-key-generator">
       <h1>Get Your Free API Key</h1>
       {error && <div className="error-message">{error}</div>}
-      {apiKey ? (
+      {isLoading ? (
+        <div className="loading-message">Generating API Key, please wait...</div>
+      ) : apiKey ? (
         <div className="success-message">
           <p>Your API Key: <strong>{apiKey}</strong></p>
-          <p>You can now generate up to 200 certificates with this key.</p>
+          <p>Remaining limit: {remainingLimit} certificates</p>
+          <div className="api-key-actions">
+            <button onClick={copyToClipboard}>Copy to Clipboard</button>
+            <button onClick={downloadApiKey}>Download API Key</button>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit}>

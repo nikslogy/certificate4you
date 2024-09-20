@@ -109,13 +109,19 @@ function CertificateGenerator() {
         },
         body: JSON.stringify(dataToSend),
       });
-
+  
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+        const errorData = await response.json();
+        if (response.status === 403) {
+          if (errorData.error === 'Invalid API key') {
+            throw new Error('Invalid API key. Please check your API key and try again.');
+          } else if (errorData.error === 'API key usage limit exceeded') {
+            throw new Error('API key usage limit reached. Please generate a new API key.');
+          }
+        }
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorData.error}`);
       }
-
+  
       const result = await response.json();
       console.log('Received result:', result);
       if (result.url) {
@@ -125,7 +131,7 @@ function CertificateGenerator() {
       }
     } catch (error) {
       console.error('Error generating certificate:', error);
-      setError(`Failed to generate certificate. Error: ${error.message}`);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
