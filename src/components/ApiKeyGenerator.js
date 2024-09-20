@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ApiKeyGenerator.css';
 
 function ApiKeyGenerator() {
@@ -12,11 +12,8 @@ function ApiKeyGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [remainingLimit, setRemainingLimit] = useState(null);
 
-  useEffect(() => {
-    checkExistingUser();
-  }, []);
-
-  const checkExistingUser = async () => {
+  const checkExistingUser = useCallback(async () => {
+    if (!formData.email) return;
     try {
       const response = await fetch('/.netlify/functions/check-existing-user', {
         method: 'POST',
@@ -36,7 +33,11 @@ function ApiKeyGenerator() {
     } catch (error) {
       console.error('Error checking existing user:', error);
     }
-  };
+  }, [formData.email]);
+
+  useEffect(() => {
+    checkExistingUser();
+  }, [checkExistingUser, formData.email]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
