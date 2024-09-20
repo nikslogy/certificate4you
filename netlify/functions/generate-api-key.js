@@ -38,10 +38,14 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ apiKey }),
     };
   } catch (error) {
-    console.error('Error generating API key:', error);
+    console.error('Detailed error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to generate API key' }),
+      body: JSON.stringify({ 
+        error: 'Failed to generate API key',
+        details: error.message,
+        stack: error.stack
+      }),
     };
   }
 };
