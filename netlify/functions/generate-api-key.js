@@ -16,8 +16,14 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  const token = event.headers.Authorization?.split(' ')[1];
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('Missing or invalid Authorization header:', authHeader);
+    return { statusCode: 401, body: JSON.stringify({ error: 'Missing or invalid Authorization header' }) };
+  }
+  const token = authHeader.split(' ')[1];
   if (!token) {
+    console.log('No token found in Authorization header');
     return { statusCode: 401, body: 'Unauthorized' };
   }
 
@@ -46,6 +52,12 @@ await dynamoDb.put({
     };
   } catch (error) {
     console.error('Detailed error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ error: 'Invalid token', details: error.message }),
+      };
+    }
     return {
       statusCode: 500,
       body: JSON.stringify({ 

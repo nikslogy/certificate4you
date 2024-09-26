@@ -22,6 +22,8 @@ function ApiKeyGenerator() {
     setError(null);
     setIsLoading(true);
 
+    console.log('Token:', localStorage.getItem('token'));
+
     try {
       const response = await fetch('/.netlify/functions/generate-api-key', {
         method: 'POST',
