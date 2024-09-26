@@ -15,7 +15,7 @@ exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
-
+  console.log('DYNAMODB_USERS_TABLE:', process.env.DYNAMODB_USERS_TABLE);
   try {
     const { email, password } = JSON.parse(event.body);
 
