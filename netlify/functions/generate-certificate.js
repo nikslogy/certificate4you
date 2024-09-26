@@ -93,7 +93,7 @@ async function validateApiKey(apiKey) {
 
   await dynamoDb.update({
     TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-    Key: { email: user.email },
+    Key: { userId: user.userId, apiKey: user.apiKey },
     UpdateExpression: 'SET usageCount = usageCount + :inc',
     ExpressionAttributeValues: { ':inc': 1 },
   });
