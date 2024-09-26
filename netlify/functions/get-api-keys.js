@@ -1,6 +1,5 @@
 const { DynamoDB } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocument } = require("@aws-sdk/lib-dynamodb");
-const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 
 const dynamoDb = DynamoDBDocument.from(new DynamoDB({
@@ -12,7 +11,7 @@ const dynamoDb = DynamoDBDocument.from(new DynamoDB({
 }));
 
 exports.handler = async (event, context) => {
-  if (event.httpMethod !== 'POST') {
+  if (event.httpMethod !== 'GET') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
@@ -23,35 +22,24 @@ exports.handler = async (event, context) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { name, reason } = JSON.parse(event.body);
-    const apiKey = uuidv4();
-    const timestamp = new Date().toISOString();
-
-    await dynamoDb.put({
+    const result = await dynamoDb.query({
       TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-      Item: {
-        userId: decoded.userId,
-        apiKey,
-        name,
-        reason,
-        createdAt: timestamp,
-        usageCount: 0,
-        limit: 200,
+      IndexName: 'userId-index',
+      KeyConditionExpression: 'userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': decoded.userId,
       },
     });
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ apiKey, limit: 200 }),
+      body: JSON.stringify({ apiKeys: result.Items }),
     };
   } catch (error) {
-    console.error('Detailed error:', error);
+    console.error('Error fetching API keys:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ 
-        error: 'Failed to generate API key',
-        details: error.message,
-        stack: error.stack
-      }),
+      body: JSON.stringify({ error: 'Failed to fetch API keys' }),
     };
   }
 };

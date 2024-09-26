@@ -1,0 +1,51 @@
+.pricing-container {
+  text-align: center;
+  padding: 50px;
+}
+
+.pricing-title {
+  font-size: 2em;
+  margin-bottom: 20px;
+}
+
+.pricing-plans-container {
+  display: flex;
+  justify-content: space-around;
+}
+
+.pricing-plan-card {
+  width: 30%;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  margin-bottom: 20px;
+}
+
+.pricing-plan-title {
+  font-size: 1.5em;
+  margin-bottom: 10px;
+}
+
+.pricing-plan-description {
+  margin-bottom: 10px;
+}
+
+.pricing-plan-price {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+.pricing-plan-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.pricing-plan-button:hover {
+  background-color: #45a049;
+}

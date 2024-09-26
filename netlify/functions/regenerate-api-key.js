@@ -23,35 +23,28 @@ exports.handler = async (event, context) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { name, reason } = JSON.parse(event.body);
-    const apiKey = uuidv4();
-    const timestamp = new Date().toISOString();
+    const { keyId } = JSON.parse(event.body);
+    const newApiKey = uuidv4();
 
-    await dynamoDb.put({
+    const result = await dynamoDb.update({
       TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-      Item: {
-        userId: decoded.userId,
-        apiKey,
-        name,
-        reason,
-        createdAt: timestamp,
-        usageCount: 0,
-        limit: 200,
+      Key: { userId: decoded.userId, apiKey: keyId },
+      UpdateExpression: 'set apiKey = :newApiKey',
+      ExpressionAttributeValues: {
+        ':newApiKey': newApiKey,
       },
+      ReturnValues: 'ALL_NEW',
     });
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ apiKey, limit: 200 }),
+      body: JSON.stringify({ apiKey: result.Attributes }),
     };
   } catch (error) {
-    console.error('Detailed error:', error);
+    console.error('Error regenerating API key:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ 
-        error: 'Failed to generate API key',
-        details: error.message,
-        stack: error.stack
-      }),
+      body: JSON.stringify({ error: 'Failed to regenerate API key' }),
     };
   }
 };

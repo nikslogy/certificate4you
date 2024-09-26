@@ -4,7 +4,6 @@ import './ApiKeyGenerator.css';
 function ApiKeyGenerator() {
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
     reason: ''
   });
   const [apiKey, setApiKey] = useState(null);
@@ -12,7 +11,6 @@ function ApiKeyGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [remainingLimit, setRemainingLimit] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [showSendToEmail, setShowSendToEmail] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -23,13 +21,13 @@ function ApiKeyGenerator() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-    setShowSendToEmail(false);
 
     try {
       const response = await fetch('/.netlify/functions/generate-api-key', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
         body: JSON.stringify(formData),
       });
@@ -38,40 +36,11 @@ function ApiKeyGenerator() {
         const result = await response.json();
         setApiKey(result.apiKey);
         setRemainingLimit(result.limit);
-      } else if (response.status === 400) {
-        // User already exists
-        setShowSendToEmail(true);
       } else {
         throw new Error('Failed to generate API key');
       }
     } catch (error) {
       setError('Failed to process your request. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const sendApiKeyToEmail = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/.netlify/functions/send-api-key-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: formData.email }),
-      });
-
-      if (response.ok) {
-        setShowSendToEmail(false);
-        setApiKey('API key sent to your email');
-      } else {
-        throw new Error('Failed to send API key to email');
-      }
-    } catch (error) {
-      setError('Failed to send API key to email. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -109,11 +78,6 @@ function ApiKeyGenerator() {
             <button onClick={downloadApiKey}>Download API Key</button>
           </div>
         </div>
-      ) : showSendToEmail ? (
-        <div className="existing-user-message">
-          <p>An API key already exists for this email.</p>
-          <button onClick={sendApiKeyToEmail}>Send API Key to Email</button>
-        </div>
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -123,17 +87,6 @@ function ApiKeyGenerator() {
               id="name"
               name="name"
               value={formData.name}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
               onChange={handleInputChange}
               required
             />
