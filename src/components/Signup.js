@@ -28,10 +28,11 @@ function Signup() {
       if (response.ok) {
         navigate('/login');
       } else {
-        throw new Error('Failed to sign up');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to sign up');
       }
     } catch (error) {
-      setError('Failed to sign up. Please try again.');
+      setError(error.message || 'Failed to sign up. Please try again.');
     }
   };
 

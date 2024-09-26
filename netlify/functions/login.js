@@ -16,6 +16,16 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
   console.log('DYNAMODB_USERS_TABLE:', process.env.DYNAMODB_USERS_TABLE);
+  console.log('JWT_SECRET is set:', !!process.env.JWT_SECRET);
+  
+  if (!process.env.JWT_SECRET) {
+    console.error('JWT_SECRET is not set');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Server configuration error' }),
+    };
+  }
+
   try {
     const { email, password } = JSON.parse(event.body);
 
