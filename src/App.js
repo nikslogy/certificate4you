@@ -11,10 +11,22 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import './App.css';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsAuthenticated(!!token);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+  };
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -60,14 +72,21 @@ function App() {
             </li>
             <li><NavLink to="/" onClick={closeMenu}>Home</NavLink></li>
             <li><NavLink to="/api-guide" onClick={closeMenu}>API Guide</NavLink></li>
-            <li><NavLink to="/generate" onClick={closeMenu}>Generate Certificate</NavLink></li>
-            <li><NavLink to="/verify" onClick={closeMenu}>Verify Certificate</NavLink></li>
             <li><NavLink to="/pricing" onClick={closeMenu}>Pricing</NavLink></li>
-            <li><NavLink to="/api-key-generator" onClick={closeMenu}>Get free API Key</NavLink></li>
             <li><NavLink to="/contact" onClick={closeMenu}>Contact</NavLink></li>
-            <li><NavLink to="/login" onClick={closeMenu}>Login</NavLink></li>
-            <li><NavLink to="/signup" onClick={closeMenu}>Signup</NavLink></li>
-            <li><NavLink to="/dashboard" onClick={closeMenu}>Dashboard</NavLink></li>
+            {!isAuthenticated && (
+              <>
+                <li><NavLink to="/login" onClick={closeMenu}>Login</NavLink></li>
+                <li><NavLink to="/signup" onClick={closeMenu}>Signup</NavLink></li>
+              </>
+            )}
+            {isAuthenticated && (
+              <>
+                <li><NavLink to="/dashboard" onClick={closeMenu}>Dashboard</NavLink></li>
+                <li><NavLink to="/api-key-generator" onClick={closeMenu}>Get API Key</NavLink></li>
+                <li><NavLink to="/" onClick={() => { handleLogout(); closeMenu(); }}>Logout</NavLink></li>
+              </>
+            )}
           </ul>
         </nav>
   
@@ -75,14 +94,14 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/api-guide" element={<ApiGuide />} />
-            <Route path="/generate" element={<CertificateGenerator />} />
-            <Route path="/verify" element={<CertificateVerifier />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/api-key-generator" element={<ApiKeyGenerator />} />
             <Route path="/contact" element={<ContactUs />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Dashboard /></ProtectedRoute>} />
+            <Route path="/api-key-generator" element={<ProtectedRoute isAuthenticated={isAuthenticated}><ApiKeyGenerator /></ProtectedRoute>} />
+            <Route path="/generate" element={<ProtectedRoute isAuthenticated={isAuthenticated}><CertificateGenerator /></ProtectedRoute>} />
+            <Route path="/verify" element={<ProtectedRoute isAuthenticated={isAuthenticated}><CertificateVerifier /></ProtectedRoute>} />
           </Routes>
         </main>
       </div>

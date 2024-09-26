@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
-function Login() {
+function Login({ setIsAuthenticated }) {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -28,9 +28,11 @@ function Login() {
       if (response.ok) {
         const result = await response.json();
         localStorage.setItem('token', result.token);
+        setIsAuthenticated(true);
         navigate('/dashboard');
       } else {
-        throw new Error('Failed to login');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to login');
       }
     } catch (error) {
       setError('Failed to login. Please try again.');
