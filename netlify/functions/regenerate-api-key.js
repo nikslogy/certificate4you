@@ -27,14 +27,14 @@ exports.handler = async (event, context) => {
     const newApiKey = uuidv4();
 
     const result = await dynamoDb.update({
-      TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-      Key: { userId: decoded.userId, apiKey: keyId },
-      UpdateExpression: 'set apiKey = :newApiKey',
-      ExpressionAttributeValues: {
-        ':newApiKey': newApiKey,
-      },
-      ReturnValues: 'ALL_NEW',
-    });
+        TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+        Key: { userId: decoded.userId, apiKey: keyId },
+        UpdateExpression: 'set apiKey = :newApiKey',
+        ExpressionAttributeValues: {
+          ':newApiKey': newApiKey,
+        },
+        ReturnValues: 'ALL_NEW',
+      });
 
     return {
       statusCode: 200,

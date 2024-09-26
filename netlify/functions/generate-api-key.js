@@ -23,22 +23,23 @@ exports.handler = async (event, context) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { name, reason } = JSON.parse(event.body);
-    const apiKey = uuidv4();
-    const timestamp = new Date().toISOString();
+const { name, reason } = JSON.parse(event.body);
+const apiKey = uuidv4();
+const timestamp = new Date().toISOString();
 
-    await dynamoDb.put({
-      TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-      Item: {
-        userId: decoded.userId,
-        apiKey,
-        name,
-        reason,
-        createdAt: timestamp,
-        usageCount: 0,
-        limit: 200,
-      },
-    });
+await dynamoDb.put({
+  TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+  Item: {
+    userId: decoded.userId,
+    apiKey,
+    name,
+    reason,
+    createdAt: timestamp,
+    usageCount: 0,
+    limit: 200,
+    email: decoded.userId, // Assuming userId is the email
+  },
+});
     return {
       statusCode: 200,
       body: JSON.stringify({ apiKey, limit: 200 }),

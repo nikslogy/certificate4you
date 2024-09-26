@@ -17,15 +17,18 @@ exports.handler = async (event, context) => {
   try {
     const { email } = JSON.parse(event.body);
 
-    const result = await dynamoDb.get({
-        TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-        Key: {
-          email: email
-        }
-      });
+    const result = await dynamoDb.query({
+      TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+      IndexName: 'email-index',
+      KeyConditionExpression: 'email = :email',
+      ExpressionAttributeValues: {
+        ':email': email
+      }
+    });
+    
       
-      if (result.Item) {
-        const user = result.Item;
+    if (result.Items && result.Items.length > 0) {
+      const user = result.Items[0];
         return {
           statusCode: 200,
           body: JSON.stringify({

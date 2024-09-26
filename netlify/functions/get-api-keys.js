@@ -23,13 +23,12 @@ exports.handler = async (event, context) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const result = await dynamoDb.query({
-      TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-      IndexName: 'userId-index',
-      KeyConditionExpression: 'userId = :userId',
-      ExpressionAttributeValues: {
-        ':userId': decoded.userId,
-      },
-    });
+        TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': decoded.userId,
+        },
+      });
 
     return {
       statusCode: 200,
