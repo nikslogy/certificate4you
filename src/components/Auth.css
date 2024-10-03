@@ -121,3 +121,39 @@
 .auth-container.success {
   animation: fadeInUp 0.5s ease forwards;
 }
+
+.auth-links {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.auth-link {
+  margin: 10px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.auth-link a {
+  color: #6e8efb;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.auth-link a:hover {
+  color: #5a7af0;
+}
+
+/* Add this to your existing Auth.css file */
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  color: #6e8efb;
+  text-decoration: underline;
+}
+
+.link-button:hover {
+  color: #5a7af0;
+}

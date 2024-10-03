@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './Auth.css';
 
 function Signup() {
@@ -29,6 +29,7 @@ function Signup() {
 
       if (response.ok) {
         setOtpSent(true);
+        setSuccess('OTP sent successfully. Please check your email.');
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to send OTP');
@@ -70,7 +71,7 @@ function Signup() {
     <div className={`auth-container ${success ? 'success' : ''}`}>
       <h1>Sign Up</h1>
       {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message show">Sign up successful! Redirecting to login...</div>}
+      {success && <div className="success-message show">{success}</div>}
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="form-group1">
           <input
@@ -128,6 +129,9 @@ function Signup() {
           </>
         )}
       </form>
+      <p className="auth-link">
+        Already have an account? <Link to="/login">Log in</Link>
+      </p>
     </div>
   );
 }
