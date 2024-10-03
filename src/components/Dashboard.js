@@ -40,6 +40,7 @@ function Dashboard() {
     setError(null);
 
     try {
+      console.log('Deleting API key:', apiKey);
       const response = await fetch('/.netlify/functions/delete-api-key', {
         method: 'DELETE',
         headers: {
@@ -49,18 +50,24 @@ function Dashboard() {
         body: JSON.stringify({ keyId: apiKey }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.indexOf("application/json") !== -1) {
         const data = await response.json();
+        console.log('Response data:', data);
         if (!response.ok) {
           throw new Error(data.error || 'Failed to delete API key');
         }
         setApiKeys(apiKeys.filter(key => key.apiKey !== apiKey));
       } else {
         const text = await response.text();
+        console.log('Response text:', text);
         throw new Error(text || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
+      console.error('Error in deleteApiKey:', error);
       setError(`Failed to delete API key: ${error.message}`);
     } finally {
       setIsLoading(false);

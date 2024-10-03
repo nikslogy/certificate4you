@@ -11,6 +11,8 @@ const dynamoDb = DynamoDBDocument.from(new DynamoDB({
 }));
 
 exports.handler = async (event, context) => {
+  console.log('Event:', JSON.stringify(event, null, 2));
+
   if (event.httpMethod !== 'DELETE') {
     return { 
       statusCode: 405, 
@@ -29,12 +31,19 @@ exports.handler = async (event, context) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { keyId } = JSON.parse(event.body);
+    console.log('Decoded token:', JSON.stringify(decoded, null, 2));
 
-    await dynamoDb.delete({
+    const { keyId } = JSON.parse(event.body);
+    console.log('KeyId to delete:', keyId);
+
+    const deleteParams = {
       TableName: process.env.DYNAMODB_API_KEYS_TABLE,
       Key: { userId: decoded.userId, apiKey: keyId },
-    });
+    };
+    console.log('Delete params:', JSON.stringify(deleteParams, null, 2));
+
+    const deleteResult = await dynamoDb.delete(deleteParams);
+    console.log('Delete result:', JSON.stringify(deleteResult, null, 2));
 
     return {
       statusCode: 200,
@@ -50,7 +59,7 @@ exports.handler = async (event, context) => {
     }
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to delete API key' }),
+      body: JSON.stringify({ error: 'Failed to delete API key', details: error.message }),
     };
   }
 };
