@@ -51,6 +51,11 @@
     border-radius: 4px;
     padding: 15px;
     margin-top: 20px;
+    color: #155724; /* Add this line to ensure text is visible */
+  }
+  
+  .success-message p {
+    margin-bottom: 10px; /* Add this block to improve spacing */
   }
   
   .api-key-actions {
@@ -59,4 +64,9 @@
   
   .api-key-actions button {
     margin-right: 10px;
+  }
+  
+  .copy-success {
+    color: #28a745; /* Add this block to style the copy success message */
+    font-weight: bold;
   }

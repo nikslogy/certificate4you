@@ -72,7 +72,7 @@ function ApiKeyGenerator() {
         <div className="loading-message">Processing your request, please wait...</div>
       ) : apiKey ? (
         <div className="success-message">
-          <p>Your API Key: <strong>{apiKey}</strong></p>
+          <p>Your API Key: <code>{apiKey}</code></p>
           {remainingLimit && <p>You can generate up to {remainingLimit} certificates with this key.</p>}
           {copySuccess && <p className="copy-success">API Key copied to clipboard!</p>}
           <div className="api-key-actions">
