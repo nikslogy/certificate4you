@@ -50,7 +50,7 @@ function Login({ setIsAuthenticated }) {
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message show">Login successful! Redirecting...</div>}
       <form onSubmit={handleSubmit} className="auth-form">
-        <div className="form-group">
+        <div className="form-group1">
           <input
             type="email"
             id="email"
@@ -62,7 +62,7 @@ function Login({ setIsAuthenticated }) {
           />
           <label htmlFor="email">Email</label>
         </div>
-        <div className="form-group">
+        <div className="form-group1">
           <input
             type="password"
             id="password"

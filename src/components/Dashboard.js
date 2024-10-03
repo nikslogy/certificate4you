@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import './Dashboard.css';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -90,6 +91,11 @@ function Dashboard() {
       {error && <div className="error-message">{error}</div>}
       {isLoading ? (
         <div className="loading-message">Loading...</div>
+      ) : apiKeys.length === 0 ? (
+        <div className="no-api-keys">
+          <p>You don't have any API keys yet.</p>
+          <Link to="/api-key-generator" className="create-api-key-button">Create API Key</Link>
+        </div>
       ) : (
         <motion.div className="api-keys" layout>
           <AnimatePresence>
@@ -117,6 +123,9 @@ function Dashboard() {
             ))}
           </AnimatePresence>
         </motion.div>
+      )}
+      {apiKeys.length > 0 && (
+        <Link to="/api-key-generator" className="create-api-key-button">Create New API Key</Link>
       )}
       <AnimatePresence>
         {showNotification && (

@@ -47,7 +47,7 @@ function Signup() {
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message show">Sign up successful! Redirecting to login...</div>}
       <form onSubmit={handleSubmit} className="auth-form">
-        <div className="form-group">
+        <div className="form-group1">
           <input
             type="text"
             id="name"
@@ -59,7 +59,7 @@ function Signup() {
           />
           <label htmlFor="name">Name</label>
         </div>
-        <div className="form-group">
+        <div className="form-group1">
           <input
             type="email"
             id="email"
@@ -71,7 +71,7 @@ function Signup() {
           />
           <label htmlFor="email">Email</label>
         </div>
-        <div className="form-group">
+        <div className="form-group1">
           <input
             type="password"
             id="password"

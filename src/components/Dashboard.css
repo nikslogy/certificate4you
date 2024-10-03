@@ -2,12 +2,26 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
-  position: relative;
 }
 
-h1 {
-  color: #333;
-  margin-bottom: 2rem;
+.no-api-keys {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.create-api-key-button {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.create-api-key-button:hover {
+  background-color: #0056b3;
 }
 
 .error-message {

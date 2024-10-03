@@ -85,7 +85,6 @@ function App() {
             {isAuthenticated && (
               <>
                 <li><NavLink to="/dashboard" onClick={closeMenu}>Dashboard</NavLink></li>
-                <li><NavLink to="/api-key-generator" onClick={closeMenu}>Get API Key</NavLink></li>
                 <li><NavLink to="/" onClick={() => { handleLogout(); closeMenu(); }}>Logout</NavLink></li>
               </>
             )}
