@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import { format } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function Dashboard() {
   const [apiKeys, setApiKeys] = useState([]);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
 
   useEffect(() => {
     fetchApiKeys();
@@ -36,50 +39,49 @@ function Dashboard() {
   };
 
   const deleteApiKey = async (apiKey) => {
-    setIsLoading(true);
-    setError(null);
+    if (window.confirm('Are you sure you want to delete this API key?')) {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      console.log('Deleting API key:', apiKey);
-      const response = await fetch('/.netlify/functions/delete-api-key', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ keyId: apiKey }),
-      });
+      try {
+        const response = await fetch('/.netlify/functions/delete-api-key', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({ keyId: apiKey }),
+        });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.indexOf("application/json") !== -1) {
         const data = await response.json();
-        console.log('Response data:', data);
-        if (!response.ok) {
+
+        if (response.ok) {
+          setApiKeys(apiKeys.filter(key => key.apiKey !== apiKey));
+          displayNotification('API key deleted successfully');
+        } else {
           throw new Error(data.error || 'Failed to delete API key');
         }
-        setApiKeys(apiKeys.filter(key => key.apiKey !== apiKey));
-      } else {
-        const text = await response.text();
-        console.log('Response text:', text);
-        throw new Error(text || `HTTP error! status: ${response.status}`);
+      } catch (error) {
+        setError(`Failed to delete API key: ${error.message}`);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error in deleteApiKey:', error);
-      setError(`Failed to delete API key: ${error.message}`);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const copyApiKey = (key) => {
     navigator.clipboard.writeText(key).then(() => {
-      alert('API key copied to clipboard');
+      displayNotification('API key copied to clipboard');
     }, (err) => {
       console.error('Could not copy text: ', err);
+      displayNotification('Failed to copy API key');
     });
+  };
+
+  const displayNotification = (message) => {
+    setNotificationMessage(message);
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 3000);
   };
 
   return (
@@ -89,23 +91,45 @@ function Dashboard() {
       {isLoading ? (
         <div className="loading-message">Loading...</div>
       ) : (
-        <div className="api-keys">
-          {apiKeys.map(key => (
-            <div key={key.apiKey} className="api-key-card">
-              <h3>API Key: {key.apiKey.slice(0, 8)}...</h3>
-              <p><strong>Name:</strong> {key.name || 'Unnamed'}</p>
-              <p><strong>Reason:</strong> {key.reason || 'Not specified'}</p>
-              <p><strong>Created:</strong> {format(new Date(key.createdAt), 'PPpp')}</p>
-              <p><strong>Usage Count:</strong> {key.usageCount}</p>
-              <p><strong>Limit:</strong> {key.limit}</p>
-              <div className="api-key-actions">
-                <button onClick={() => copyApiKey(key.apiKey)} className="copy-button">Copy Key</button>
-                <button onClick={() => deleteApiKey(key.apiKey)} className="delete-button">Delete</button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <motion.div className="api-keys" layout>
+          <AnimatePresence>
+            {apiKeys.map(key => (
+              <motion.div
+                key={key.apiKey}
+                className="api-key-card"
+                layout
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+              >
+                <h3>API Key: {key.apiKey.slice(0, 8)}...</h3>
+                <p><strong>Name:</strong> {key.name || 'Unnamed'}</p>
+                <p><strong>Reason:</strong> {key.reason || 'Not specified'}</p>
+                <p><strong>Created:</strong> {format(new Date(key.createdAt), 'PPpp')}</p>
+                <p><strong>Usage Count:</strong> {key.usageCount}</p>
+                <p><strong>Limit:</strong> {key.limit}</p>
+                <div className="api-key-actions">
+                  <button onClick={() => copyApiKey(key.apiKey)} className="copy-button">Copy Key</button>
+                  <button onClick={() => deleteApiKey(key.apiKey)} className="delete-button">Delete</button>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
+      <AnimatePresence>
+        {showNotification && (
+          <motion.div
+            className="notification"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+          >
+            {notificationMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
