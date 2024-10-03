@@ -35,7 +35,7 @@ function Dashboard() {
     }
   };
 
-  const deleteApiKey = async (keyId) => {
+  const deleteApiKey = async (apiKey) => {
     setIsLoading(true);
     setError(null);
 
@@ -46,11 +46,11 @@ function Dashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({ keyId }),
+        body: JSON.stringify({ keyId: apiKey }),
       });
 
       if (response.ok) {
-        setApiKeys(apiKeys.filter(key => key.id !== keyId));
+        setApiKeys(apiKeys.filter(key => key.apiKey !== apiKey));
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to delete API key');
@@ -79,15 +79,16 @@ function Dashboard() {
       ) : (
         <div className="api-keys">
           {apiKeys.map(key => (
-            <div key={key.id} className="api-key-card">
-              <h3>API Key: {key.id.slice(0, 8)}...</h3>
-              <p><strong>Purpose:</strong> {key.purpose || 'General Use'}</p>
+            <div key={key.apiKey} className="api-key-card">
+              <h3>API Key: {key.apiKey.slice(0, 8)}...</h3>
+              <p><strong>Name:</strong> {key.name || 'Unnamed'}</p>
+              <p><strong>Reason:</strong> {key.reason || 'Not specified'}</p>
               <p><strong>Created:</strong> {format(new Date(key.createdAt), 'PPpp')}</p>
               <p><strong>Usage Count:</strong> {key.usageCount}</p>
               <p><strong>Limit:</strong> {key.limit}</p>
               <div className="api-key-actions">
                 <button onClick={() => copyApiKey(key.apiKey)} className="copy-button">Copy Key</button>
-                <button onClick={() => deleteApiKey(key.id)} className="delete-button">Delete</button>
+                <button onClick={() => deleteApiKey(key.apiKey)} className="delete-button">Delete</button>
               </div>
             </div>
           ))}
