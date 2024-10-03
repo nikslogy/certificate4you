@@ -1,7 +1,6 @@
 const { DynamoDB } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocument } = require("@aws-sdk/lib-dynamodb");
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 
 const dynamoDb = DynamoDBDocument.from(new DynamoDB({
   region: process.env.MYCERT_AWS_REGION,
@@ -15,9 +14,23 @@ exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
-  console.log('DYNAMODB_USERS_TABLE:', process.env.DYNAMODB_USERS_TABLE);
+
   try {
-    const { name, email, password } = JSON.parse(event.body);
+    const { name, email, password, otp } = JSON.parse(event.body);
+
+    // Verify OTP
+    const otpResult = await dynamoDb.get({
+      TableName: process.env.DYNAMODB_OTP_TABLE,
+      Key: { email },
+    });
+
+    if (!otpResult.Item || otpResult.Item.otp !== otp || Date.now() > otpResult.Item.expirationTime) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Invalid or expired OTP' }),
+      };
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await dynamoDb.put({
@@ -29,6 +42,12 @@ exports.handler = async (event, context) => {
         createdAt: new Date().toISOString(),
       },
       ConditionExpression: 'attribute_not_exists(email)',
+    });
+
+    // Delete the OTP entry
+    await dynamoDb.delete({
+      TableName: process.env.DYNAMODB_OTP_TABLE,
+      Key: { email },
     });
 
     return {

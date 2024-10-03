@@ -45,7 +45,7 @@
     margin-bottom: 10px;
   }
   
-  .success-message {
+  .success-message1 {
     background-color: #e7f3e8;
     border: 1px solid #c3e6cb;
     border-radius: 4px;
@@ -54,7 +54,7 @@
     color: #155724; /* Add this line to ensure text is visible */
   }
   
-  .success-message p {
+  .success-message1 p {
     margin-bottom: 10px; /* Add this block to improve spacing */
   }
   
