@@ -12,13 +12,20 @@ const dynamoDb = DynamoDBDocument.from(new DynamoDB({
 
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'DELETE') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return { 
+      statusCode: 405, 
+      body: JSON.stringify({ error: 'Method Not Allowed' })
+    };
   }
 
-  const token = event.headers.Authorization?.split(' ')[1];
-  if (!token) {
-    return { statusCode: 401, body: 'Unauthorized' };
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { 
+      statusCode: 401, 
+      body: JSON.stringify({ error: 'Missing or invalid Authorization header' })
+    };
   }
+  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -35,6 +42,12 @@ exports.handler = async (event, context) => {
     };
   } catch (error) {
     console.error('Error deleting API key:', error);
+    if (error instanceof jwt.JsonWebTokenError) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ error: 'Invalid or expired token' })
+      };
+    }
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'Failed to delete API key' }),

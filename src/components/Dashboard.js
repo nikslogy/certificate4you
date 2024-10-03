@@ -49,11 +49,16 @@ function Dashboard() {
         body: JSON.stringify({ keyId: apiKey }),
       });
 
-      if (response.ok) {
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to delete API key');
+        }
         setApiKeys(apiKeys.filter(key => key.apiKey !== apiKey));
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete API key');
+        const text = await response.text();
+        throw new Error(text || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
       setError(`Failed to delete API key: ${error.message}`);
