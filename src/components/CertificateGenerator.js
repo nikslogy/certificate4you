@@ -127,6 +127,7 @@ function CertificateGenerator() {
       console.log('Received result:', result);
       if (result.url) {
         setGeneratedCertificateUrl(result.url);
+        resetForm(); // Reset form after successful generation
       } else {
         throw new Error('No URL returned from server');
       }
@@ -135,6 +136,7 @@ function CertificateGenerator() {
       setError(error.message);
     } finally {
       setIsLoading(false);
+      topRef.current.scrollIntoView({ behavior: 'smooth' }); // Scroll to top
     }
   };
 
@@ -147,15 +149,27 @@ function CertificateGenerator() {
     });
   };
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      course: '',
+      date: '',
+      certificateType: 'completion',
+      issuer: '',
+      additionalInfo: '',
+    });
+    setLogo(null);
+    setSignatures([{ name: '', image: null, type: 'upload' }]);
+    setApiKey('');
+  };
+
   useEffect(() => {
-    console.log('generatedCertificateUrl changed:', generatedCertificateUrl);
-    if (generatedCertificateUrl && topRef.current) {
+    if (generatedCertificateUrl || error) {
       topRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [generatedCertificateUrl]);
+  }, [generatedCertificateUrl, error]);
 
   return (
-
     <div className="certificate-generator">
       <div ref={topRef}></div>
       <h1>Generate Certificate</h1>
