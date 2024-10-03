@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './CertificateVerifier.css';
 
 function CertificateVerifier() {
   const [id, setId] = useState('');
@@ -17,8 +18,7 @@ function CertificateVerifier() {
       }
 
       setResult(data);
-      setResult(data);
-console.log('Certificate data:', data);
+      console.log('Certificate data:', data);
     } catch (error) {
       console.error('Error verifying certificate:', error);
       setResult({ error: error.message, isValid: false });
@@ -28,35 +28,40 @@ console.log('Certificate data:', data);
   };
 
   return (
-    <div className="CertificateVerifier">
+    <div className="certificate-verifier">
       <h2>Verify Certificate</h2>
       <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={id}
-          onChange={(e) => setId(e.target.value)}
-          placeholder="Enter Certificate ID"
-          required
-        />
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Verifying...' : 'Verify'}
-        </button>
+        <div className="input-group">
+          <input
+            type="text"
+            value={id}
+            onChange={(e) => setId(e.target.value)}
+            placeholder="Enter Certificate ID"
+            required
+          />
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? 'Verifying...' : 'Verify'}
+          </button>
+        </div>
       </form>
       {result && (
-        <div>
+        <div className={`result ${result.isValid ? 'valid' : 'invalid'}`}>
           {result.isValid ? (
-            <div>
-              <p>Certificate is valid.</p>
-              <p>Name: {result.name}</p>
-              <p>Issuer: {result.issuer}</p>
+            <>
+              <h3>Certificate is Valid</h3>
+              <p><strong>Name:</strong> {result.name}</p>
+              <p><strong>Issuer:</strong> {result.issuer}</p>
               {result.pdfUrl && (
-                <a href={result.pdfUrl} target="_blank" rel="noopener noreferrer">
+                <a href={result.pdfUrl} target="_blank" rel="noopener noreferrer" className="btn btn-view">
                   View Certificate
                 </a>
               )}
-            </div>
+            </>
           ) : (
-            <p>Certificate is invalid: {result.error}</p>
+            <>
+              <h3>Certificate is Invalid</h3>
+              <p>{result.error}</p>
+            </>
           )}
         </div>
       )}

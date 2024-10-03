@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Route, Routes, NavLink } from 'react-router-dom';
 import Home from './components/Home';
 import ApiGuide from './components/ApiGuide';
@@ -17,7 +17,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -33,62 +32,39 @@ function App() {
     setMenuOpen(!menuOpen);
   };
 
-  const closeMenu = () => {
-    setMenuOpen(false);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        closeMenu();
-      }
-    };
-
-    if (menuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [menuOpen]);
-
   return (
     <Router>
       <div className="App">
-        <nav className={`navbar ${menuOpen ? 'open' : ''}`} ref={menuRef}>
-          <div className="navbar-logo">
-            <NavLink to="/" onClick={closeMenu}>Certificate4You</NavLink>
+        <nav className={`navbar ${menuOpen ? 'open' : ''}`}>
+          <div className="navbar-container">
+            <NavLink to="/" className="navbar-logo" onClick={() => setMenuOpen(false)}>
+              Certificate4You
+            </NavLink>
+            <div className="navbar-toggle" onClick={toggleMenu}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <ul className={`navbar-menu ${menuOpen ? 'open' : ''}`}>
+              <li><NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink></li>
+              <li><NavLink to="/generate" onClick={() => setMenuOpen(false)}>Generate</NavLink></li>
+              <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
+              <li><NavLink to="/api-guide" onClick={() => setMenuOpen(false)}>API Guide</NavLink></li>
+              <li><NavLink to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</NavLink></li>
+              <li><NavLink to="/contact" onClick={() => setMenuOpen(false)}>Contact</NavLink></li>
+              {!isAuthenticated ? (
+                <>
+                  <li><NavLink to="/login" onClick={() => setMenuOpen(false)} className="btn btn-login">Login</NavLink></li>
+                  <li><NavLink to="/signup" onClick={() => setMenuOpen(false)} className="btn btn-signup">Signup</NavLink></li>
+                </>
+              ) : (
+                <>
+                  <li><NavLink to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</NavLink></li>
+                  <li><NavLink to="/" onClick={() => { handleLogout(); setMenuOpen(false); }} className="btn btn-logout">Logout</NavLink></li>
+                </>
+              )}
+            </ul>
           </div>
-          <div className="navbar-toggle" onClick={toggleMenu}>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <ul className={`navbar-links ${menuOpen ? 'open' : ''}`}>
-            <li className="back-button" onClick={closeMenu}>
-              <i className="fas fa-arrow-left"></i> Back
-            </li>
-            <li><NavLink to="/" onClick={closeMenu}>Home</NavLink></li>
-            <li><NavLink to="/generate" onClick={closeMenu}>Generate Certificate</NavLink></li>
-            <li><NavLink to="/api-guide" onClick={closeMenu}>API Guide</NavLink></li>
-            <li><NavLink to="/pricing" onClick={closeMenu}>Pricing</NavLink></li>
-            <li><NavLink to="/contact" onClick={closeMenu}>Contact</NavLink></li>
-            {!isAuthenticated && (
-              <>
-                <li><NavLink to="/login" onClick={closeMenu}>Login</NavLink></li>
-                <li><NavLink to="/signup" onClick={closeMenu}>Signup</NavLink></li>
-              </>
-            )}
-            {isAuthenticated && (
-              <>
-                <li><NavLink to="/dashboard" onClick={closeMenu}>Dashboard</NavLink></li>
-                <li><NavLink to="/" onClick={() => { handleLogout(); closeMenu(); }}>Logout</NavLink></li>
-              </>
-            )}
-          </ul>
         </nav>
 
         <main className="main-content">

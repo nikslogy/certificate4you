@@ -87,7 +87,7 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      <h1>API Key Management</h1>
+      <h1>Manage Your API Keys</h1>
       {error && <div className="error-message">{error}</div>}
       {isLoading ? (
         <div className="loading-message">Loading...</div>
