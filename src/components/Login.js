@@ -33,10 +33,10 @@ function Login({ setIsAuthenticated }) {
         const result = await response.json();
         localStorage.setItem('token', result.token);
         setIsAuthenticated(true);
-        setSuccess(true);
+        setSuccess('Login successful! Redirecting to dashboard...');
         setTimeout(() => {
           navigate('/dashboard');
-        }, 1500);
+        }, 3000);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to login');

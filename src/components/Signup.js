@@ -54,10 +54,10 @@ function Signup() {
       });
 
       if (response.ok) {
-        setSuccess(true);
+        setSuccess('Signup successful! Redirecting to login page...');
         setTimeout(() => {
           navigate('/login');
-        }, 1500);
+        }, 3000);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to sign up');
