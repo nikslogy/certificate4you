@@ -166,10 +166,13 @@ button[type="submit"]:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
+  opacity: 1; 
+  visibility: visible; 
 }
 
 .success-message p {
   margin-bottom: 0.5rem;
+  color: #155724; 
 }
 
 .success-message button {
@@ -181,8 +184,16 @@ button[type="submit"]:disabled {
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.2s ease-in-out;
+  opacity: 1; 
 }
 
 .success-message button:hover {
   background-color: #218838;
+}
+
+.success-message.show {
+  display: flex;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
 }

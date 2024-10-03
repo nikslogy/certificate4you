@@ -176,7 +176,7 @@ function CertificateGenerator() {
       {error && <div className="error-message">{error}</div>}
       {isLoading && <div className="loading-message">Generating certificate...</div>}
       {generatedCertificateUrl && (
-        <div className="success-message">
+        <div className="success-message show"> {/* Add 'show' class here */}
           <p>Certificate generated successfully!</p>
           <button onClick={() => window.open(generatedCertificateUrl, '_blank')}>
             Download Certificate
