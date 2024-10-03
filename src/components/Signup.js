@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Signup.css';
+import './Auth.css';
 
 function Signup() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -15,6 +16,7 @@ function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccess(false);
 
     try {
       const response = await fetch('/.netlify/functions/signup', {
@@ -26,7 +28,10 @@ function Signup() {
       });
 
       if (response.ok) {
-        navigate('/login');
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/login');
+        }, 1500);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to sign up');
@@ -37,12 +42,12 @@ function Signup() {
   };
 
   return (
-    <div className="signup">
+    <div className={`auth-container ${success ? 'success' : ''}`}>
       <h1>Sign Up</h1>
       {error && <div className="error-message">{error}</div>}
-      <form onSubmit={handleSubmit}>
+      {success && <div className="success-message show">Sign up successful! Redirecting to login...</div>}
+      <form onSubmit={handleSubmit} className="auth-form">
         <div className="form-group">
-          <label htmlFor="name">Name</label>
           <input
             type="text"
             id="name"
@@ -50,10 +55,11 @@ function Signup() {
             value={formData.name}
             onChange={handleInputChange}
             required
+            placeholder=" "
           />
+          <label htmlFor="name">Name</label>
         </div>
         <div className="form-group">
-          <label htmlFor="email">Email</label>
           <input
             type="email"
             id="email"
@@ -61,10 +67,11 @@ function Signup() {
             value={formData.email}
             onChange={handleInputChange}
             required
+            placeholder=" "
           />
+          <label htmlFor="email">Email</label>
         </div>
         <div className="form-group">
-          <label htmlFor="password">Password</label>
           <input
             type="password"
             id="password"
@@ -72,9 +79,11 @@ function Signup() {
             value={formData.password}
             onChange={handleInputChange}
             required
+            placeholder=" "
           />
+          <label htmlFor="password">Password</label>
         </div>
-        <button type="submit">Sign Up</button>
+        <button type="submit" className="auth-button">Sign Up</button>
       </form>
     </div>
   );

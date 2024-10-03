@@ -11,6 +11,7 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import './App.css';
+import './components/Auth.css';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -71,6 +72,7 @@ function App() {
               <i className="fas fa-arrow-left"></i> Back
             </li>
             <li><NavLink to="/" onClick={closeMenu}>Home</NavLink></li>
+            <li><NavLink to="/generate" onClick={closeMenu}>Generate Certificate</NavLink></li>
             <li><NavLink to="/api-guide" onClick={closeMenu}>API Guide</NavLink></li>
             <li><NavLink to="/pricing" onClick={closeMenu}>Pricing</NavLink></li>
             <li><NavLink to="/contact" onClick={closeMenu}>Contact</NavLink></li>
@@ -89,7 +91,7 @@ function App() {
             )}
           </ul>
         </nav>
-  
+
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -100,8 +102,8 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Dashboard /></ProtectedRoute>} />
             <Route path="/api-key-generator" element={<ProtectedRoute isAuthenticated={isAuthenticated}><ApiKeyGenerator /></ProtectedRoute>} />
-            <Route path="/generate" element={<ProtectedRoute isAuthenticated={isAuthenticated}><CertificateGenerator /></ProtectedRoute>} />
-            <Route path="/verify" element={<ProtectedRoute isAuthenticated={isAuthenticated}><CertificateVerifier /></ProtectedRoute>} />
+            <Route path="/generate" element={<CertificateGenerator />} />
+            <Route path="/verify" element={<CertificateVerifier />} />
           </Routes>
         </main>
       </div>

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Login.css';
+import './Auth.css';
 
 function Login({ setIsAuthenticated }) {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -15,6 +16,7 @@ function Login({ setIsAuthenticated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccess(false);
 
     try {
       const response = await fetch('/.netlify/functions/login', {
@@ -29,7 +31,10 @@ function Login({ setIsAuthenticated }) {
         const result = await response.json();
         localStorage.setItem('token', result.token);
         setIsAuthenticated(true);
-        navigate('/dashboard');
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1500);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to login');
@@ -40,12 +45,12 @@ function Login({ setIsAuthenticated }) {
   };
 
   return (
-    <div className="login">
+    <div className={`auth-container ${success ? 'success' : ''}`}>
       <h1>Login</h1>
       {error && <div className="error-message">{error}</div>}
-      <form onSubmit={handleSubmit}>
+      {success && <div className="success-message show">Login successful! Redirecting...</div>}
+      <form onSubmit={handleSubmit} className="auth-form">
         <div className="form-group">
-          <label htmlFor="email">Email</label>
           <input
             type="email"
             id="email"
@@ -53,10 +58,11 @@ function Login({ setIsAuthenticated }) {
             value={formData.email}
             onChange={handleInputChange}
             required
+            placeholder=" "
           />
+          <label htmlFor="email">Email</label>
         </div>
         <div className="form-group">
-          <label htmlFor="password">Password</label>
           <input
             type="password"
             id="password"
@@ -64,9 +70,11 @@ function Login({ setIsAuthenticated }) {
             value={formData.password}
             onChange={handleInputChange}
             required
+            placeholder=" "
           />
+          <label htmlFor="password">Password</label>
         </div>
-        <button type="submit">Login</button>
+        <button type="submit" className="auth-button">Login</button>
       </form>
     </div>
   );

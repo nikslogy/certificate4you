@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
+import { Link } from 'react-router-dom';
 import './CertificateGenerator.css';
 
 function CertificateGenerator() {
@@ -178,6 +179,7 @@ function CertificateGenerator() {
           onChange={(e) => setApiKey(e.target.value)}
           required
         />
+        <Link to="/api-key-generator" className="get-api-key-link">Get free API key now</Link>
       </div>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
