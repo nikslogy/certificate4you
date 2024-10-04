@@ -1,12 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 
+
+
 .auth-container {
-  max-width: 400px;
-  margin: 50px auto;
-  padding: 40px;
-  background-color: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  max-width: 800px; /* Increase from previous value, e.g., 400px */
+  width: 360px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: var(--white);
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 
@@ -155,5 +158,12 @@
 }
 
 .link-button:hover {
-  color: #5a7af0;
+  color: #ffffff;
+}
+
+@media (max-width: 850px) {
+  .auth-container {
+    max-width: 90%;
+    padding: 1.5rem;
+  }
 }

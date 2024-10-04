@@ -63,14 +63,13 @@ body {
 
 .navbar-menu a {
   text-decoration: none;
-  color: var(--text-color);
   font-weight: 500;
   transition: color 0.3s ease;
 }
 
 .navbar-menu a:hover,
 .navbar-menu a.active {
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .btn {
@@ -103,8 +102,6 @@ body {
 .main-content {
   flex: 1;
   padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 @media (max-width: 768px) {

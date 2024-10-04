@@ -1,6 +1,7 @@
 .certificate-generator {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 800px; /* Increase from 800px */
+  width: 100%;
+  margin: 2rem auto;
   padding: 2rem;
   background-color: #f8f9fa;
   border-radius: 10px;
@@ -130,9 +131,10 @@ button[type="submit"]:hover {
   background-color: #0056b3;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1050px) {
   .certificate-generator {
-    padding: 1rem;
+    max-width: 90%;
+    padding: 1.5rem;
   }
 
   .signature-canvas {
