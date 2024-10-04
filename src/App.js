@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Route, Routes, NavLink } from 'react-router-dom';
 import Home from './components/Home';
 import ApiGuide from './components/ApiGuide';
@@ -13,14 +13,28 @@ import Dashboard from './components/Dashboard';
 import './App.css';
 import './components/Auth.css';
 import ProtectedRoute from './components/ProtectedRoute';
+const userIcon = 'https://via.placeholder.com/150'; // Default user icon
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const accountMenuRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     setIsAuthenticated(!!token);
+
+    const handleClickOutside = (event) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target)) {
+        setShowAccountMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -30,6 +44,10 @@ function App() {
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
+  };
+
+  const toggleAccountMenu = () => {
+    setShowAccountMenu(!showAccountMenu);
   };
 
   return (
@@ -62,6 +80,20 @@ function App() {
                   <li><NavLink to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</NavLink></li>
                   <li><NavLink to="/" onClick={() => { handleLogout(); setMenuOpen(false); }} className="btn btn-logout">Logout</NavLink></li>
                 </>
+              )}
+              {isAuthenticated && (
+                <li className="account-menu-container" ref={accountMenuRef}>
+                  <button onClick={toggleAccountMenu} className="account-button">
+                    <img src={userIcon} alt="User" className="user-icon" />
+                  </button>
+                  {showAccountMenu && (
+                    <ul className="account-dropdown">
+                      <li><NavLink to="/account" onClick={() => { setShowAccountMenu(false); setMenuOpen(false); }}>Account</NavLink></li>
+                      <li><NavLink to="/settings" onClick={() => { setShowAccountMenu(false); setMenuOpen(false); }}>Settings</NavLink></li>
+                      <li><NavLink to="/" onClick={() => { handleLogout(); setShowAccountMenu(false); setMenuOpen(false); }}>Log Out</NavLink></li>
+                    </ul>
+                  )}
+                </li>
               )}
             </ul>
           </div>

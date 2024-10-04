@@ -149,3 +149,68 @@ body {
     margin-top: 1rem;
   }
 }
+
+.account-menu-container {
+  position: relative;
+}
+
+.account-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.user-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.account-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--white);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  list-style-type: none;
+  padding: 0.5rem 0;
+  min-width: 150px;
+  z-index: 1000;
+}
+
+.account-dropdown li {
+  margin: 0;
+}
+
+.account-dropdown a {
+  display: block;
+  padding: 0.5rem 1rem;
+  color: var(--text-color);
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.account-dropdown a:hover {
+  background-color: var(--bg-color);
+}
+
+@media (max-width: 768px) {
+  .account-menu-container {
+    width: 100%;
+    text-align: center;
+    margin-top: 1rem;
+  }
+
+  .account-dropdown {
+    position: static;
+    width: 100%;
+    box-shadow: none;
+    background-color: transparent;
+  }
+
+  .account-dropdown a {
+    padding: 1rem;
+  }
+}
