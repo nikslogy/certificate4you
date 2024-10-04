@@ -18,16 +18,15 @@ const userIcon = 'https://via.placeholder.com/150'; // Default user icon
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showAccountMenu, setShowAccountMenu] = useState(false);
-  const accountMenuRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     setIsAuthenticated(!!token);
 
     const handleClickOutside = (event) => {
-      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target)) {
-        setShowAccountMenu(false);
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
       }
     };
 
@@ -40,14 +39,11 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
+    setMenuOpen(false);
   };
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
-  };
-
-  const toggleAccountMenu = () => {
-    setShowAccountMenu(!showAccountMenu);
   };
 
   return (
@@ -58,44 +54,45 @@ function App() {
             <NavLink to="/" className="navbar-logo" onClick={() => setMenuOpen(false)}>
               Certificate4You
             </NavLink>
-            <div className="navbar-toggle" onClick={toggleMenu}>
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <ul className={`navbar-menu ${menuOpen ? 'open' : ''}`}>
-              <li><NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink></li>
-              <li><NavLink to="/generate" onClick={() => setMenuOpen(false)}>Generate</NavLink></li>
-              <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
-              <li><NavLink to="/api-guide" onClick={() => setMenuOpen(false)}>API Guide</NavLink></li>
-              <li><NavLink to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</NavLink></li>
-              <li><NavLink to="/contact" onClick={() => setMenuOpen(false)}>Contact</NavLink></li>
-              {!isAuthenticated ? (
-                <>
+            {isAuthenticated ? (
+              <div className="menu-container" ref={menuRef}>
+                <button onClick={toggleMenu} className="menu-button">
+                  <img src={userIcon} alt="Menu" className="user-icon" />
+                </button>
+                {menuOpen && (
+                  <ul className="menu-dropdown">
+                    <li><NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink></li>
+                    <li><NavLink to="/generate" onClick={() => setMenuOpen(false)}>Generate</NavLink></li>
+                    <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
+                    <li><NavLink to="/api-guide" onClick={() => setMenuOpen(false)}>API Guide</NavLink></li>
+                    <li><NavLink to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</NavLink></li>
+                    <li><NavLink to="/contact" onClick={() => setMenuOpen(false)}>Contact</NavLink></li>
+                    <li><NavLink to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</NavLink></li>
+                    <li><NavLink to="/account" onClick={() => setMenuOpen(false)}>Account</NavLink></li>
+                    <li><NavLink to="/settings" onClick={() => setMenuOpen(false)}>Settings</NavLink></li>
+                    <li><NavLink to="/" onClick={handleLogout}>Log Out</NavLink></li>
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="navbar-toggle" onClick={toggleMenu}>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <ul className={`navbar-menu ${menuOpen ? 'open' : ''}`}>
+                  <li><NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink></li>
+                  <li><NavLink to="/generate" onClick={() => setMenuOpen(false)}>Generate</NavLink></li>
+                  <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
+                  <li><NavLink to="/api-guide" onClick={() => setMenuOpen(false)}>API Guide</NavLink></li>
+                  <li><NavLink to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</NavLink></li>
+                  <li><NavLink to="/contact" onClick={() => setMenuOpen(false)}>Contact</NavLink></li>
                   <li><NavLink to="/login" onClick={() => setMenuOpen(false)} className="btn btn-login">Login</NavLink></li>
                   <li><NavLink to="/signup" onClick={() => setMenuOpen(false)} className="btn btn-signup">Signup</NavLink></li>
-                </>
-              ) : (
-                <>
-                  <li><NavLink to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</NavLink></li>
-                  <li><NavLink to="/" onClick={() => { handleLogout(); setMenuOpen(false); }} className="btn btn-logout">Logout</NavLink></li>
-                </>
-              )}
-              {isAuthenticated && (
-                <li className="account-menu-container" ref={accountMenuRef}>
-                  <button onClick={toggleAccountMenu} className="account-button">
-                    <img src={userIcon} alt="User" className="user-icon" />
-                  </button>
-                  {showAccountMenu && (
-                    <ul className="account-dropdown">
-                      <li><NavLink to="/account" onClick={() => { setShowAccountMenu(false); setMenuOpen(false); }}>Account</NavLink></li>
-                      <li><NavLink to="/settings" onClick={() => { setShowAccountMenu(false); setMenuOpen(false); }}>Settings</NavLink></li>
-                      <li><NavLink to="/" onClick={() => { handleLogout(); setShowAccountMenu(false); setMenuOpen(false); }}>Log Out</NavLink></li>
-                    </ul>
-                  )}
-                </li>
-              )}
-            </ul>
+                </ul>
+              </>
+            )}
           </div>
         </nav>
 
