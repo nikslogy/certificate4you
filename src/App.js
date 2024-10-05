@@ -61,16 +61,27 @@ function App() {
                 </button>
                 {menuOpen && (
                   <ul className="menu-dropdown">
-                    <li><NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink></li>
-                    <li><NavLink to="/generate" onClick={() => setMenuOpen(false)}>Generate</NavLink></li>
-                    <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
-                    <li><NavLink to="/api-guide" onClick={() => setMenuOpen(false)}>API Guide</NavLink></li>
-                    <li><NavLink to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</NavLink></li>
-                    <li><NavLink to="/contact" onClick={() => setMenuOpen(false)}>Contact</NavLink></li>
-                    <li><NavLink to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</NavLink></li>
-                    <li><NavLink to="/account" onClick={() => setMenuOpen(false)}>Account</NavLink></li>
-                    <li><NavLink to="/settings" onClick={() => setMenuOpen(false)}>Settings</NavLink></li>
-                    <li><NavLink to="/" onClick={handleLogout}>Log Out</NavLink></li>
+                    <div className="menu-section">
+                      <div className="menu-section-title">Navigation</div>
+                      <li><NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink></li>
+                      <li><NavLink to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</NavLink></li>
+                    </div>
+                    <div className="menu-section">
+                      <div className="menu-section-title">Certificate Actions</div>
+                      <li><NavLink to="/generate" onClick={() => setMenuOpen(false)}>Generate</NavLink></li>
+                      <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
+                    </div>
+                    <div className="menu-section">
+                      <div className="menu-section-title">Resources</div>
+                      <li><NavLink to="/api-guide" onClick={() => setMenuOpen(false)}>API Guide</NavLink></li>
+                      <li><NavLink to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</NavLink></li>
+                    </div>
+                    <div className="menu-section">
+                      <div className="menu-section-title">Account</div>
+                      <li><NavLink to="/account" onClick={() => setMenuOpen(false)}>My Account</NavLink></li>
+                      <li><NavLink to="/settings" onClick={() => setMenuOpen(false)}>Settings</NavLink></li>
+                      <li><NavLink to="/" onClick={handleLogout}>Log Out</NavLink></li>
+                    </div>
                   </ul>
                 )}
               </div>
