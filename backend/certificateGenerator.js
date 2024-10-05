@@ -140,59 +140,61 @@ function generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, c
 }
 
 function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+
   // Gradient background
-  const grad = doc.linearGradient(0, 0, doc.page.width, doc.page.height);
-  grad.stop(0, '#4a90e2')
-      .stop(1, '#63b3ed');
-  doc.rect(0, 0, doc.page.width, doc.page.height).fill(grad);
+  const grad = doc.linearGradient(0, 0, pageWidth, pageHeight);
+  grad.stop(0, '#4a90e2').stop(1, '#63b3ed');
+  doc.rect(0, 0, pageWidth, pageHeight).fill(grad);
 
   // Decorative elements
   doc.circle(50, 50, 100).fillOpacity(0.1).fill('#ffffff');
-  doc.circle(doc.page.width - 50, doc.page.height - 50, 150).fillOpacity(0.1).fill('#ffffff');
+  doc.circle(pageWidth - 50, pageHeight - 50, 150).fillOpacity(0.1).fill('#ffffff');
 
   // White content area
-  doc.roundedRect(50, 100, doc.page.width - 100, doc.page.height - 200, 20).fill('#ffffff');
+  doc.roundedRect(50, 50, pageWidth - 100, pageHeight - 100, 20).fill('#ffffff');
 
   // Header
   doc.font('Heading')
-     .fontSize(52)
+     .fontSize(48)
      .fillColor('#4a90e2')
-     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 130, { align: 'center' });
+     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 80, { align: 'center' });
 
   // Gold accent line
-  doc.moveTo(150, 200).lineTo(doc.page.width - 150, 200).lineWidth(3).stroke('#f9a825');
+  doc.moveTo(100, 140).lineTo(pageWidth - 100, 140).lineWidth(2).stroke('#f9a825');
 
   // Content
   doc.font('SubHeading')
-     .fontSize(28)
+     .fontSize(24)
      .fillColor('#555555')
-     .text('This is to certify that', 0, 240, { align: 'center' });
+     .text('This is to certify that', 0, 180, { align: 'center' });
 
   doc.font('Heading')
-     .fontSize(48)
+     .fontSize(36)
      .fillColor('#4a90e2')
-     .text(name, 0, 280, { align: 'center' });
+     .text(name, 0, 220, { align: 'center' });
 
   doc.font('SubHeading')
-     .fontSize(28)
+     .fontSize(24)
      .fillColor('#555555')
-     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 350, { align: 'center' });
+     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 270, { align: 'center' });
 
   doc.font('Heading')
-     .fontSize(40)
+     .fontSize(32)
      .fillColor('#4a90e2')
-     .text(course, 0, 390, { align: 'center' });
+     .text(course, 0, 310, { align: 'center' });
 
   doc.font('Text')
-     .fontSize(24)
+     .fontSize(20)
      .fillColor('#777777')
-     .text(`on ${date}`, 0, 450, { align: 'center' });
+     .text(`on ${date}`, 0, 360, { align: 'center' });
 
   // Add a ribbon graphic
   doc.save()
-     .translate(80, 60)
+     .translate(60, 40)
      .rotate(-15)
-     .polygon([0, 0], [60, 0], [60, 120], [30, 150], [0, 120])
+     .polygon([0, 0], [40, 0], [40, 80], [20, 100], [0, 80])
      .fill('#f9a825')
      .restore();
 
