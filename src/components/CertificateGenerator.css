@@ -199,3 +199,38 @@ button[type="submit"]:disabled {
   visibility: visible;
   transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
 }
+
+.template-selection {
+  margin-bottom: 2rem;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.template-item {
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.template-item:hover,
+.template-item.selected {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.template-item img {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.template-item p {
+  margin-top: 0.5rem;
+  text-align: center;
+}

@@ -11,6 +11,7 @@ function CertificateGenerator() {
     certificateType: 'completion',
     issuer: '',
     additionalInfo: '',
+    template: 'classic-elegance', // Add this line
   });
   const [logo, setLogo] = useState(null);
   const [signatures, setSignatures] = useState([{ name: '', image: null, type: 'upload' }]);
@@ -169,6 +170,28 @@ function CertificateGenerator() {
     }
   }, [generatedCertificateUrl, error]);
 
+  const templates = [
+    {
+      id: 'classic-elegance',
+      name: 'Classic Elegance',
+      image: '/images/classic-elegance-preview.jpg',
+    },
+    {
+      id: 'modern-minimalist',
+      name: 'Modern Minimalist',
+      image: '/images/modern-minimalist-preview.jpg',
+    },
+    {
+      id: 'vibrant-achievement',
+      name: 'Vibrant Achievement',
+      image: '/images/vibrant-achievement-preview.jpg',
+    },
+  ];
+
+  const handleTemplateSelect = (templateId) => {
+    setFormData({ ...formData, template: templateId });
+  };
+
   return (
     <div className="certificate-generator">
       <div ref={topRef}></div>
@@ -323,10 +346,26 @@ function CertificateGenerator() {
           )}
         </div>
 
+      <div className="template-selection">
+        <h2>Choose a Certificate Template</h2>
+        <div className="template-grid">
+          {templates.map((template) => (
+            <div
+              key={template.id}
+              className={`template-item ${formData.template === template.id ? 'selected' : ''}`}
+              onClick={() => handleTemplateSelect(template.id)}
+            >
+              <img src={template.image} alt={template.name} />
+              <p>{template.name}</p>
+            </div>
+          ))}
+        </div>
+      </div>
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Generating...' : 'Generate Certificate'}
         </button>
       </form>
+
     </div>
   );
 }

@@ -46,12 +46,12 @@ exports.handler = async (event, context) => {
     let parsedBody = parseBody(event.body);
     console.log('Parsed body:', parsedBody);
 
-    const { name, course, date, certificateType, issuer, additionalInfo, signatures, logo } = parsedBody;
+    const { name, course, date, certificateType, issuer, additionalInfo, signatures, logo, template } = parsedBody;
     const logoBuffer = logo ? Buffer.from(logo, 'base64') : null;
 
     const uniqueId = uuidv4();
     console.log('Generated uniqueId:', uniqueId);
-    const result = await generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures || []);
+    const result = await generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures || [], template);
     console.log('Certificate generation result:', result);
 
     return {
