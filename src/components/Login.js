@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './Auth.css';
 
@@ -9,6 +9,15 @@ function Login({ setIsAuthenticated }) {
   const [forgotPassword, setForgotPassword] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if user is already authenticated
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsAuthenticated(true);
+      navigate('/dashboard');
+    }
+  }, [setIsAuthenticated, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { HashRouter as Router, Route, Routes, NavLink } from 'react-router-dom';
+import { HashRouter as Router, Route, Routes, NavLink, Navigate } from 'react-router-dom';
 import Home from './components/Home';
 import ApiGuide from './components/ApiGuide';
 import CertificateGenerator from './components/CertificateGenerator';
@@ -15,7 +15,9 @@ import './components/Auth.css';
 import ProtectedRoute from './components/ProtectedRoute';
 import MyAccount from './components/MyAccount';
 import Settings from './components/Settings';
-const userIcon = 'https://via.placeholder.com/150'; // Default user icon
+import PublicRoute from './components/PublicRoute';
+import userIcon from './assets/user.png';
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -115,14 +117,30 @@ function App() {
             <Route path="/api-guide" element={<ApiGuide />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/contact" element={<ContactUs />} />
-            <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
-            <Route path="/signup" element={<Signup />} />
+            <Route 
+              path="/login" 
+              element={
+                <PublicRoute isAuthenticated={isAuthenticated}>
+                  <Login setIsAuthenticated={setIsAuthenticated} />
+                </PublicRoute>
+              } 
+            />
+            <Route 
+              path="/signup" 
+              element={
+                <PublicRoute isAuthenticated={isAuthenticated}>
+                  <Signup />
+                </PublicRoute>
+              } 
+            />
             <Route path="/dashboard" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Dashboard /></ProtectedRoute>} />
             <Route path="/api-key-generator" element={<ProtectedRoute isAuthenticated={isAuthenticated}><ApiKeyGenerator /></ProtectedRoute>} />
             <Route path="/generate" element={<CertificateGenerator />} />
             <Route path="/verify" element={<CertificateVerifier />} />
             <Route path="/account" element={<ProtectedRoute isAuthenticated={isAuthenticated}><MyAccount /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Settings /></ProtectedRoute>} />
+            {/* Catch-all route for authenticated users */}
+            <Route path="*" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/" />} />
           </Routes>
         </main>
       </div>
