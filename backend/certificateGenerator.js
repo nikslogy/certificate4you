@@ -71,132 +71,130 @@ async function generateCertificate(name, course, date, logoBuffer, certificateTy
   });
 }
 
-function generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
-  // Background color
-  doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f5f5f5');
-
-  // Border
-  const borderWidth = 20;
-  doc.rect(borderWidth, borderWidth, doc.page.width - (borderWidth * 2), doc.page.height - (borderWidth * 2))
-     .lineWidth(3)
-     .stroke('#1e3a8a');
-
-  // Header
-  doc.font('Heading')
-     .fontSize(40)
-     .fillColor('#1e3a8a')
-     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 100, { align: 'center' });
-
-  // Content
-  doc.font('SubHeading')
-     .fontSize(22)
-     .fillColor('#333')
-     .text('This is to certify that', 0, 180, { align: 'center' });
-
-  doc.font('Heading')
-     .fontSize(32)
-     .fillColor('#1e3a8a')
-     .text(name, 0, 220, { align: 'center' });
-
-  doc.font('SubHeading')
-     .fontSize(22)
-     .fillColor('#333')
-     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 280, { align: 'center' });
-
-  doc.font('Heading')
-     .fontSize(28)
-     .fillColor('#1e3a8a')
-     .text(course, 0, 320, { align: 'center' });
-
-  doc.font('Text')
-     .fontSize(18)
-     .fillColor('#666')
-     .text(`on ${date}`, 0, 380, { align: 'center' });
-
-  addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
-}
-
 function generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
   // Background
   doc.rect(0, 0, doc.page.width, doc.page.height).fill('#ffffff');
 
+  // Subtle geometric pattern
+  const patternSize = 30;
+  for (let x = 0; x < doc.page.width; x += patternSize) {
+    for (let y = 0; y < doc.page.height; y += patternSize) {
+      doc.polygon([x, y], [x + patternSize, y], [x + patternSize, y + patternSize])
+         .fill('#f0f0f0');
+    }
+  }
+
+  // Sleek border
+  const borderWidth = 15;
+  doc.rect(borderWidth, borderWidth, doc.page.width - 2 * borderWidth, doc.page.height - 2 * borderWidth)
+     .lineWidth(2)
+     .stroke('#333333');
+
   // Header
   doc.font('Heading')
-     .fontSize(40)
+     .fontSize(48)
      .fillColor('#333333')
-     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 100, { align: 'center' });
+     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 80, { align: 'center' });
+
+  // Horizontal line
+  doc.moveTo(100, 150).lineTo(doc.page.width - 100, 150).stroke('#333333');
 
   // Content
   doc.font('SubHeading')
      .fontSize(24)
      .fillColor('#555555')
-     .text('This is to certify that', 0, 180, { align: 'center' });
+     .text('This certifies that', 0, 200, { align: 'center' });
 
   doc.font('Heading')
-     .fontSize(36)
+     .fontSize(42)
      .fillColor('#333333')
-     .text(name, 0, 220, { align: 'center' });
+     .text(name, 0, 240, { align: 'center' });
 
   doc.font('SubHeading')
      .fontSize(24)
      .fillColor('#555555')
-     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 280, { align: 'center' });
+     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 300, { align: 'center' });
 
   doc.font('Heading')
-     .fontSize(32)
+     .fontSize(36)
      .fillColor('#333333')
-     .text(course, 0, 320, { align: 'center' });
+     .text(course, 0, 340, { align: 'center' });
 
   doc.font('Text')
      .fontSize(20)
      .fillColor('#777777')
-     .text(`on ${date}`, 0, 380, { align: 'center' });
+     .text(`on ${date}`, 0, 400, { align: 'center' });
+
+  // Add a subtle watermark
+  doc.save()
+     .translate(doc.page.width / 2, doc.page.height / 2)
+     .rotate(-45)
+     .font('Heading')
+     .fontSize(144)
+     .fillOpacity(0.04)
+     .fillColor('#000000')
+     .text('CERTIFIED', 0, 0, { align: 'center' })
+     .restore();
 
   addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
 }
 
 function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
-  // Background
-  doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f0f0f0');
+  // Gradient background
+  const grad = doc.linearGradient(0, 0, doc.page.width, doc.page.height);
+  grad.stop(0, '#4a90e2')
+      .stop(1, '#63b3ed');
+  doc.rect(0, 0, doc.page.width, doc.page.height).fill(grad);
 
-  // Colorful top banner
-  doc.rect(0, 0, doc.page.width, 100).fill('#4a90e2');
+  // Decorative elements
+  doc.circle(50, 50, 100).fillOpacity(0.1).fill('#ffffff');
+  doc.circle(doc.page.width - 50, doc.page.height - 50, 150).fillOpacity(0.1).fill('#ffffff');
+
+  // White content area
+  doc.roundedRect(50, 100, doc.page.width - 100, doc.page.height - 200, 20).fill('#ffffff');
 
   // Header
   doc.font('Heading')
-     .fontSize(44)
-     .fillColor('#ffffff')
-     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 30, { align: 'center' });
+     .fontSize(52)
+     .fillColor('#4a90e2')
+     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 130, { align: 'center' });
+
+  // Gold accent line
+  doc.moveTo(150, 200).lineTo(doc.page.width - 150, 200).lineWidth(3).stroke('#f9a825');
 
   // Content
   doc.font('SubHeading')
-     .fontSize(26)
-     .fillColor('#333333')
-     .text('This is to certify that', 0, 140, { align: 'center' });
+     .fontSize(28)
+     .fillColor('#555555')
+     .text('This is to certify that', 0, 240, { align: 'center' });
 
   doc.font('Heading')
-     .fontSize(38)
+     .fontSize(48)
      .fillColor('#4a90e2')
-     .text(name, 0, 180, { align: 'center' });
+     .text(name, 0, 280, { align: 'center' });
 
   doc.font('SubHeading')
-     .fontSize(26)
-     .fillColor('#333333')
-     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 240, { align: 'center' });
+     .fontSize(28)
+     .fillColor('#555555')
+     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 350, { align: 'center' });
 
   doc.font('Heading')
-     .fontSize(34)
+     .fontSize(40)
      .fillColor('#4a90e2')
-     .text(course, 0, 280, { align: 'center' });
+     .text(course, 0, 390, { align: 'center' });
 
   doc.font('Text')
-     .fontSize(22)
-     .fillColor('#555555')
-     .text(`on ${date}`, 0, 340, { align: 'center' });
+     .fontSize(24)
+     .fillColor('#777777')
+     .text(`on ${date}`, 0, 450, { align: 'center' });
 
-  // Add decorative elements
-  doc.circle(50, 50, 30).fillAndStroke('#f9a825', '#f57f17');
-  doc.circle(doc.page.width - 50, doc.page.height - 50, 30).fillAndStroke('#f9a825', '#f57f17');
+  // Add a ribbon graphic
+  doc.save()
+     .translate(80, 60)
+     .rotate(-15)
+     .polygon([0, 0], [60, 0], [60, 120], [30, 150], [0, 120])
+     .fill('#f9a825')
+     .restore();
 
   addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
 }
