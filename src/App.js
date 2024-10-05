@@ -13,6 +13,8 @@ import Dashboard from './components/Dashboard';
 import './App.css';
 import './components/Auth.css';
 import ProtectedRoute from './components/ProtectedRoute';
+import MyAccount from './components/MyAccount';
+import Settings from './components/Settings';
 const userIcon = 'https://via.placeholder.com/150'; // Default user icon
 
 function App() {
@@ -119,6 +121,8 @@ function App() {
             <Route path="/api-key-generator" element={<ProtectedRoute isAuthenticated={isAuthenticated}><ApiKeyGenerator /></ProtectedRoute>} />
             <Route path="/generate" element={<CertificateGenerator />} />
             <Route path="/verify" element={<CertificateVerifier />} />
+            <Route path="/account" element={<ProtectedRoute isAuthenticated={isAuthenticated}><MyAccount /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Settings /></ProtectedRoute>} />
           </Routes>
         </main>
       </div>

@@ -242,6 +242,8 @@ body {
   list-style-type: none;
   padding: 1rem;
   min-width: 250px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
   z-index: 1000;
 }
 
@@ -289,7 +291,5 @@ body {
     right: 10px;
     width: calc(100% - 20px);
     max-width: 300px;
-    max-height: calc(100vh - 80px);
-    overflow-y: auto;
   }
 }

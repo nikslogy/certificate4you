@@ -1,0 +1,45 @@
+.my-account {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: var(--white);
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .my-account h1 {
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+  
+  .user-info {
+    background-color: var(--bg-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+  }
+  
+  .user-info p {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    line-height: 1.6;
+  }
+  
+  .user-info strong {
+    color: var(--secondary-color);
+    margin-right: 0.5rem;
+  }
+  
+  @media (max-width: 768px) {
+    .my-account {
+      padding: 1.5rem;
+    }
+  
+    .user-info {
+      padding: 1rem;
+    }
+  
+    .user-info p {
+      font-size: 1rem;
+    }
+  }
