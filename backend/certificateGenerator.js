@@ -152,42 +152,47 @@ function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer,
   doc.circle(50, 50, 100).fillOpacity(0.1).fill('#ffffff');
   doc.circle(pageWidth - 50, pageHeight - 50, 150).fillOpacity(0.1).fill('#ffffff');
 
-  // White content area
-  doc.roundedRect(50, 50, pageWidth - 100, pageHeight - 100, 20).fill('#ffffff');
+  // White content area with increased opacity
+  doc.roundedRect(50, 50, pageWidth - 100, pageHeight - 100, 20)
+     .fillOpacity(0.9)
+     .fill('#ffffff');
+
+  // Reset fill opacity for text
+  doc.fillOpacity(1);
 
   // Header
   doc.font('Heading')
      .fontSize(48)
-     .fillColor('#4a90e2')
+     .fillColor('#2c3e50')
      .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 80, { align: 'center' });
 
   // Gold accent line
-  doc.moveTo(100, 140).lineTo(pageWidth - 100, 140).lineWidth(2).stroke('#f9a825');
+  doc.moveTo(100, 140).lineTo(pageWidth - 100, 140).lineWidth(2).stroke('#f39c12');
 
   // Content
   doc.font('SubHeading')
      .fontSize(24)
-     .fillColor('#555555')
+     .fillColor('#34495e')
      .text('This is to certify that', 0, 180, { align: 'center' });
 
   doc.font('Heading')
      .fontSize(36)
-     .fillColor('#4a90e2')
+     .fillColor('#2980b9')
      .text(name, 0, 220, { align: 'center' });
 
   doc.font('SubHeading')
      .fontSize(24)
-     .fillColor('#555555')
+     .fillColor('#34495e')
      .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 270, { align: 'center' });
 
   doc.font('Heading')
      .fontSize(32)
-     .fillColor('#4a90e2')
+     .fillColor('#2980b9')
      .text(course, 0, 310, { align: 'center' });
 
   doc.font('Text')
      .fontSize(20)
-     .fillColor('#777777')
+     .fillColor('#7f8c8d')
      .text(`on ${date}`, 0, 360, { align: 'center' });
 
   // Add a ribbon graphic
@@ -195,7 +200,7 @@ function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer,
      .translate(60, 40)
      .rotate(-15)
      .polygon([0, 0], [40, 0], [40, 80], [20, 100], [0, 80])
-     .fill('#f9a825')
+     .fill('#f39c12')
      .restore();
 
   addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
