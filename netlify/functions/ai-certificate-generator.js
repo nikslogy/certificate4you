@@ -53,7 +53,7 @@ exports.handler = async (event, context) => {
     const requiredFields = ['course', 'issuer', 'certificateType', 'template'];
     const optionalFields = ['additionalInfo', 'logo', 'signatures'];
     const missingFields = requiredFields.filter(field => !additionalFields[field]);
-    const missingOptionalFields = optionalFields.filter(field => !additionalFields[field]);
+    const missingOptionalFields = optionalFields.filter(field => additionalFields[field] === undefined);
 
     if (missingFields.length > 0) {
       const nextField = missingFields[0];
@@ -102,11 +102,11 @@ exports.handler = async (event, context) => {
           data['full name'], // Assuming the column name is 'full name'
           additionalFields.course,
           data.date,
-          additionalFields.logo,
+          additionalFields.logo || null,
           additionalFields.certificateType,
           additionalFields.issuer,
-          additionalFields.additionalInfo,
-          additionalFields.signatures,
+          additionalFields.additionalInfo || '',
+          additionalFields.signatures || [],
           additionalFields.template
         );
 
