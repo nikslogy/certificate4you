@@ -91,40 +91,41 @@ exports.handler = async (event, context) => {
           isOptional: true
         })
       };
+    } else {
+      // All fields are provided, generate certificates
+      console.log('Generating certificates');
+      const zip = new JSZip();
+
+      for (const data of fileData) {
+        const uniqueId = uuidv4();
+        const result = await generateCertificate(
+          data['full name'], // Assuming the column name is 'full name'
+          additionalFields.course,
+          data.date,
+          additionalFields.logo,
+          additionalFields.certificateType,
+          additionalFields.issuer,
+          additionalFields.additionalInfo,
+          additionalFields.signatures,
+          additionalFields.template
+        );
+
+        const pdfBuffer = await getObjectFromS3(`certificates/${uniqueId}.pdf`);
+        zip.file(`${data['full name']}_certificate.pdf`, pdfBuffer);
+      }
+
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      const zipKey = `bulk_certificates_${Date.now()}.zip`;
+      await uploadToS3(zipBuffer, zipKey, 'application/zip');
+
+      const downloadUrl = await generatePresignedUrl(zipKey);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ url: downloadUrl })
+      };
+
     }
-
-    // All fields are provided, generate certificates
-    console.log('Generating certificates');
-    const zip = new JSZip();
-
-    for (const data of fileData) {
-      const uniqueId = uuidv4();
-      const result = await generateCertificate(
-        data['full name'], // Assuming the column name is 'full name'
-        additionalFields.course,
-        data.date,
-        additionalFields.logo,
-        additionalFields.certificateType,
-        additionalFields.issuer,
-        additionalFields.additionalInfo,
-        additionalFields.signatures,
-        additionalFields.template
-      );
-
-      const pdfBuffer = await getObjectFromS3(`certificates/${uniqueId}.pdf`);
-      zip.file(`${data['full name']}_certificate.pdf`, pdfBuffer);
-    }
-
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-    const zipKey = `bulk_certificates_${Date.now()}.zip`;
-    await uploadToS3(zipBuffer, zipKey, 'application/zip');
-
-    const downloadUrl = await generatePresignedUrl(zipKey);
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ url: downloadUrl })
-    };
 
   } catch (error) {
     console.error('Detailed error:', error);
