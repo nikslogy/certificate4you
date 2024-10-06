@@ -43,20 +43,24 @@ exports.handler = async (event, context) => {
     console.log('Generating AI content');
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-    const requiredFields = ['course', 'issuer', 'certificateType'];
+    const requiredFields = ['course', 'issuer', 'certificateType', 'additionalInfo'];
     const missingFields = requiredFields.filter(field => !additionalFields[field]);
 
     if (missingFields.length > 0) {
-      const prompt = `Analyze the following certificate data:
+      const nextField = missingFields[0];
+      let prompt = `Based on the following certificate data:
       ${JSON.stringify(fileData)}
       
       Additional information provided:
       ${JSON.stringify(additionalFields)}
       
-      The next required field is: ${missingFields[0]}
-      
-      Please provide a suggestion for the ${missingFields[0]} based on the data and any additional context.
-      Respond in a conversational manner, as if you're talking to the user.`;
+      Please provide guidance for the user to fill in the "${nextField}" field.`;
+
+      if (nextField === 'certificateType') {
+        prompt += `\nProvide options for certificate types as a dropdown list.`;
+      } else if (nextField === 'additionalInfo') {
+        prompt += `\nExplain that this field is optional and can include any extra details about the course or achievement.`;
+      }
 
       const result = await model.generateContent(prompt);
       const aiResponse = result.response.text();
@@ -65,7 +69,19 @@ exports.handler = async (event, context) => {
         statusCode: 200,
         body: JSON.stringify({
           messages: [aiResponse],
-          nextField: missingFields[0]
+          nextField,
+          fieldType: nextField === 'certificateType' ? 'dropdown' : 'text',
+          isOptional: nextField === 'additionalInfo'
+        })
+      };
+    } else if (!additionalFields.signatures) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          messages: ["Would you like to add any signatures to the certificate? You can add up to 3 signatures."],
+          nextField: 'signatures',
+          fieldType: 'signature',
+          isOptional: true
         })
       };
     } else {

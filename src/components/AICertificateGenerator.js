@@ -12,6 +12,9 @@ function AICertificateGenerator() {
   const [currentField, setCurrentField] = useState(null);
   const [userInput, setUserInput] = useState('');
   const chatRef = useRef(null);
+  const [fieldType, setFieldType] = useState(null);
+  const [isOptional, setIsOptional] = useState(false);
+  const [showGenerateButton, setShowGenerateButton] = useState(false);
 
   useEffect(() => {
     fetchApiKeys();
@@ -115,10 +118,7 @@ function AICertificateGenerator() {
 
   const handleUserInput = async (e) => {
     e.preventDefault();
-    if (!userInput.trim()) return;
-
-    addMessage('User', userInput);
-    setUserInput('');
+    setIsLoading(true);
 
     try {
       const response = await fetch('/.netlify/functions/ai-certificate-generator', {
@@ -139,11 +139,23 @@ function AICertificateGenerator() {
       }
 
       const result = await response.json();
-      await processAIResponse(result);
+      addMessage('AI', result.messages[0]);
+      
+      if (result.nextField) {
+        setCurrentField(result.nextField);
+        setFieldType(result.fieldType);
+        setIsOptional(result.isOptional);
+      } else {
+        // All fields are filled, show certificate generation button
+        setShowGenerateButton(true);
+      }
     } catch (error) {
       console.error('Error:', error);
       addMessage('AI', `An error occurred: ${error.message}`);
     }
+
+    setIsLoading(false);
+    setUserInput('');
   };
 
   const addMessage = (sender, content, isUserInput = false, isDownloadLink = false, downloadUrl = '') => {
@@ -157,6 +169,10 @@ function AICertificateGenerator() {
 
   const handleDownload = (url) => {
     window.open(url, '_blank');
+  };
+
+  const handleGenerateCertificates = () => {
+    // Implement logic to generate certificates
   };
 
   return (
@@ -203,15 +219,34 @@ function AICertificateGenerator() {
 
       {currentField && (
         <form onSubmit={handleUserInput} className="user-input-form">
-          <input
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder={`Enter ${currentField}`}
-            required
-          />
+          {fieldType === 'dropdown' ? (
+            <select
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              required={!isOptional}
+            >
+              <option value="">Select {currentField}</option>
+              {/* Add options based on the AI's suggestions */}
+            </select>
+          ) : fieldType === 'signature' ? (
+            <div>
+              {/* Add signature upload/draw components */}
+            </div>
+          ) : (
+            <input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              placeholder={`Enter ${currentField}${isOptional ? ' (optional)' : ''}`}
+              required={!isOptional}
+            />
+          )}
           <button type="submit">Submit</button>
         </form>
+      )}
+
+      {showGenerateButton && (
+        <button onClick={handleGenerateCertificates}>Generate Certificates</button>
       )}
     </div>
   );
