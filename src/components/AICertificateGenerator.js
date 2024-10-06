@@ -16,6 +16,7 @@ function AICertificateGenerator() {
   const [isOptional, setIsOptional] = useState(false);
   const [showGenerateButton, setShowGenerateButton] = useState(false);
   const [fieldOptions, setFieldOptions] = useState([]);
+  const [additionalFields, setAdditionalFields] = useState({});
 
   useEffect(() => {
     fetchApiKeys();
