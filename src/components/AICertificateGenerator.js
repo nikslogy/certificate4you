@@ -13,6 +13,8 @@ function AICertificateGenerator() {
   const [logo, setLogo] = useState(null);
   const [remainingUsage, setRemainingUsage] = useState(null);
   const chatRef = useRef(null);
+  const [missingFields, setMissingFields] = useState([]);
+  const [fileData, setFileData] = useState(null);
 
   useEffect(() => {
     fetchApiKeys();
@@ -52,7 +54,8 @@ function AICertificateGenerator() {
     setIsLoading(true);
 
     try {
-      const fileData = await readFileData(file);
+      const data = await readFileData(file);
+      setFileData(data);
       const response = await fetch('/.netlify/functions/ai-certificate-generator', {
         method: 'POST',
         headers: {
@@ -60,7 +63,51 @@ function AICertificateGenerator() {
         },
         body: JSON.stringify({
           apiKey: selectedApiKey,
-          fileData,
+          fileData: data,
+          logo: logo ? await fileToBase64(logo) : null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to process certificates');
+      }
+
+      const result = await response.json();
+      if (result.missingFields && result.missingFields.length > 0) {
+        setMissingFields(result.missingFields);
+        addMessage('AI', `Please provide the following missing information: ${result.missingFields.join(', ')}`);
+      } else {
+        await processAIResponse(result);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      addMessage('AI', `An error occurred: ${error.message}`);
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleMissingFieldSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const updatedFileData = fileData.map(item => ({
+      ...item,
+      ...Object.fromEntries(
+        missingFields.map(field => [field, e.target[field].value])
+      )
+    }));
+
+    try {
+      const response = await fetch('/.netlify/functions/ai-certificate-generator', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apiKey: selectedApiKey,
+          fileData: updatedFileData,
           logo: logo ? await fileToBase64(logo) : null,
         }),
       });
@@ -72,6 +119,7 @@ function AICertificateGenerator() {
 
       const result = await response.json();
       await processAIResponse(result);
+      setMissingFields([]);
     } catch (error) {
       console.error('Error:', error);
       addMessage('AI', `An error occurred: ${error.message}`);
@@ -139,34 +187,48 @@ function AICertificateGenerator() {
   return (
     <div className="ai-certificate-generator">
       <h1>AI Certificate Generator</h1>
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="file">Upload CSV or Excel file:</label>
-          <input type="file" id="file" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} required />
-        </div>
-        <div className="form-group">
-          <label htmlFor="logo">Upload Logo (optional):</label>
-          <input type="file" id="logo" accept="image/*" onChange={handleLogoUpload} />
-        </div>
-        <div className="form-group">
-          <label htmlFor="apiKey">Select API Key:</label>
-          <select
-            id="apiKey"
-            value={selectedApiKey}
-            onChange={(e) => setSelectedApiKey(e.target.value)}
-            required
-          >
-            {apiKeys.map((key) => (
-              <option key={key.apiKey} value={key.apiKey}>
-                {key.name} - Remaining: {key.limit - key.usageCount}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Processing...' : 'Generate Certificates'}
-        </button>
-      </form>
+      {missingFields.length > 0 ? (
+        <form onSubmit={handleMissingFieldSubmit}>
+          {missingFields.map(field => (
+            <div key={field} className="form-group">
+              <label htmlFor={field}>{field.charAt(0).toUpperCase() + field.slice(1)}:</label>
+              <input type="text" id={field} name={field} required />
+            </div>
+          ))}
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? 'Processing...' : 'Submit Missing Information'}
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="file">Upload CSV or Excel file:</label>
+            <input type="file" id="file" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} required />
+          </div>
+          <div className="form-group">
+            <label htmlFor="logo">Upload Logo (optional):</label>
+            <input type="file" id="logo" accept="image/*" onChange={handleLogoUpload} />
+          </div>
+          <div className="form-group">
+            <label htmlFor="apiKey">Select API Key:</label>
+            <select
+              id="apiKey"
+              value={selectedApiKey}
+              onChange={(e) => setSelectedApiKey(e.target.value)}
+              required
+            >
+              {apiKeys.map((key) => (
+                <option key={key.apiKey} value={key.apiKey}>
+                  {key.name} - Remaining: {key.limit - key.usageCount}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? 'Processing...' : 'Generate Certificates'}
+          </button>
+        </form>
+      )}
 
       <div className="chat-container" ref={chatRef}>
         {chatMessages.map((message, index) => (

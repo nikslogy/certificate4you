@@ -57,16 +57,26 @@ exports.handler = async (event, context) => {
     const template = extractTemplate(aiResponse);
     const messages = aiResponse.split('\n').filter(msg => msg.trim() !== '');
 
-    // Check if the user has enough usage left
-    if (apiKeyData.usageCount + certificateCount > apiKeyData.limit) {
-      return { statusCode: 403, body: JSON.stringify({ error: 'API key usage limit exceeded' }) };
+    // Check for missing fields
+    const missingFields = checkMissingFields(fileData);
+    if (missingFields.length > 0) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          messages,
+          missingFields,
+          certificateCount,
+          template,
+        })
+      };
     }
 
+    // Generate certificates only if all required fields are present
     const zip = new JSZip();
     for (const data of fileData) {
       const result = await generateCertificate(
         data.name,
-        data.course,
+        data.course || data.certificateTitle,
         data.date,
         logo,
         data.certificateType || 'completion',
@@ -136,6 +146,21 @@ function extractTemplate(aiResponse) {
     }
   }
   return 'modern-minimalist'; // Default template
+}
+
+function checkMissingFields(fileData) {
+  const requiredFields = ['name', 'course', 'date', 'issuer'];
+  const missingFields = new Set();
+
+  for (const data of fileData) {
+    for (const field of requiredFields) {
+      if (!data[field]) {
+        missingFields.add(field);
+      }
+    }
+  }
+
+  return Array.from(missingFields);
 }
 
 async function uploadToS3(buffer, key, contentType) {
