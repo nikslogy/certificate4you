@@ -106,17 +106,24 @@ exports.handler = async (event, context) => {
       const certificateCount = fileData.length;
       const zip = new JSZip();
       for (const data of fileData) {
+        console.log('Processing certificate for:', data.name);
         const result = await generateCertificate(
           data.name,
           additionalFields.course,
           data.date,
-          additionalFields.certificateType, // Make sure this is passed correctly
+          additionalFields.certificateType,
           additionalFields.issuer,
           additionalFields.additionalInfo || '',
           additionalFields.logo,
           additionalFields.signatures || [],
-          additionalFields.template || 'classic-elegance'
+          additionalFields.template || 'modern-minimalist'
         );
+        console.log('Result from generateCertificate:', result);
+
+        if (!result || !result.id) {
+          console.error('Invalid result from generateCertificate:', result);
+          throw new Error('Failed to generate certificate: Invalid result');
+        }
 
         const pdfBuffer = await getObjectFromS3(`certificates/${result.id}.pdf`);
         zip.file(`${data.name}_certificate.pdf`, pdfBuffer);

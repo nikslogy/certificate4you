@@ -80,6 +80,10 @@ const generateCertificate = async (
   }
 
   doc.end();
+
+  const id = uuidv4(); // Generate a unique ID for the certificate
+
+  return { id };
 };
 
 const generateClassicEleganceTemplate = async (doc, data) => {
