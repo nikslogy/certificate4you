@@ -93,8 +93,8 @@ function AICertificateGenerator() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to process data');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server error: ${response.status}`);
       }
 
       const result = await response.json();
@@ -108,18 +108,31 @@ function AICertificateGenerator() {
   };
 
   const processAIResponse = async (result) => {
+    if (!result || typeof result !== 'object') {
+      console.error('Invalid response format:', result);
+      addMessage('AI', 'Received an invalid response from the server.');
+      return;
+    }
+
     const { messages, nextField, fieldType, options, isOptional } = result;
 
-    for (const message of messages) {
-      addMessage('AI', message);
+    if (Array.isArray(messages)) {
+      for (const message of messages) {
+        addMessage('AI', message);
+        await delay(1000);
+      }
+    } else if (typeof messages === 'string') {
+      addMessage('AI', messages);
       await delay(1000);
+    } else {
+      console.warn('Unexpected messages format:', messages);
     }
 
     if (nextField) {
       setCurrentField(nextField);
-      setFieldType(fieldType);
-      setIsOptional(isOptional);
-      setFieldOptions(options || []);
+      setFieldType(fieldType || 'text');
+      setIsOptional(!!isOptional);
+      setFieldOptions(Array.isArray(options) ? options : []);
       addMessage('AI', `Please provide the ${nextField}${isOptional ? ' (optional)' : ''}:`);
     } else {
       setCurrentField(null);
