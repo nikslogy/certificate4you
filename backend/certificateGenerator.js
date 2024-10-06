@@ -12,69 +12,122 @@ const s3Client = new S3Client({
   },
 });
 
-async function generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, template) {
-  return new Promise(async (resolve, reject) => {
-    const uniqueId = uuidv4();
+const generateCertificate = async (
+  name,
+  course,
+  date,
+  certificateType,
+  issuer,
+  additionalInfo,
+  logo,
+  signatures,
+  template
+) => {
+  const uniqueId = uuidv4();
 
-    const doc = new PDFDocument({
-      layout: 'landscape',
-      size: 'A4',
-      margin: 0,
-    });
-
-    const buffers = [];
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', async () => {
-      const pdfBuffer = Buffer.concat(buffers);
-      
-      try {
-        await uploadToS3(pdfBuffer, `certificates/${uniqueId}.pdf`, 'application/pdf');
-        await storeCertificateData(uniqueId, name, course, date, certificateType, issuer, template);
-        const url = await generatePresignedUrl(`certificates/${uniqueId}.pdf`);
-        resolve({ 
-          id: uniqueId, 
-          url: url
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-
-    try {
-      // Load custom fonts
-      const headingFont = await getFileFromS3('fonts/Montserrat-Bold.ttf');
-      const subHeadingFont = await getFileFromS3('fonts/Montserrat-Medium.ttf');
-      const textFont = await getFileFromS3('fonts/Montserrat-Regular.ttf');
-
-      doc.registerFont('Heading', headingFont);
-      doc.registerFont('SubHeading', subHeadingFont);
-      doc.registerFont('Text', textFont);
-    } catch (error) {
-      console.error('Error loading custom fonts:', error);
-      // Use fallback fonts if custom fonts fail to load
-      doc.font('Helvetica-Bold');
-      doc.font('Helvetica');
-    }
-
-    switch (template) {
-      case 'modern-minimalist':
-        generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
-        break;
-      case 'vibrant-achievement':
-        generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
-        break;
-      case 'classic-elegance':
-        generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
-        break;
-      default:
-        generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
-    }
-
-    doc.end();
+  const doc = new PDFDocument({
+    size: 'A4',
+    layout: 'landscape',
+    margins: { top: 50, bottom: 50, left: 50, right: 50 }
   });
-}
 
-function generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
+  const buffers = [];
+  doc.on('data', buffers.push.bind(buffers));
+  doc.on('end', async () => {
+    const pdfBuffer = Buffer.concat(buffers);
+    
+    try {
+      await uploadToS3(pdfBuffer, `certificates/${uniqueId}.pdf`, 'application/pdf');
+      await storeCertificateData(uniqueId, name, course, date, certificateType, issuer, template);
+      const url = await generatePresignedUrl(`certificates/${uniqueId}.pdf`);
+      resolve({ 
+        id: uniqueId, 
+        url: url
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+
+  try {
+    // Load custom fonts
+    const headingFont = await getFileFromS3('fonts/Montserrat-Bold.ttf');
+    const subHeadingFont = await getFileFromS3('fonts/Montserrat-Medium.ttf');
+    const textFont = await getFileFromS3('fonts/Montserrat-Regular.ttf');
+
+    doc.registerFont('Heading', headingFont);
+    doc.registerFont('SubHeading', subHeadingFont);
+    doc.registerFont('Text', textFont);
+  } catch (error) {
+    console.error('Error loading custom fonts:', error);
+    // Use fallback fonts if custom fonts fail to load
+    doc.font('Helvetica-Bold');
+    doc.font('Helvetica');
+  }
+
+  // Choose the appropriate template based on the certificateType
+  switch (template) {
+    case 'modern-minimalist':
+      await generateModernMinimalistTemplate(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
+      break;
+    case 'vibrant-achievement':
+      await generateVibrantAchievementTemplate(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
+      break;
+    case 'classic-elegance':
+    default:
+      await generateClassicEleganceTemplate(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
+      break;
+  }
+
+  doc.end();
+};
+
+const generateClassicEleganceTemplate = async (doc, data) => {
+  const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
+
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+
+  // Implement the classic elegance template generation here
+  // For now, we'll use a placeholder implementation
+  doc.rect(0, 0, pageWidth, pageHeight).fill('#f9f9f9');
+
+  doc.font('Heading')
+     .fontSize(42)
+     .fillColor('#333333')
+     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 100, { align: 'center' });
+
+  doc.font('SubHeading')
+     .fontSize(24)
+     .fillColor('#555555')
+     .text('This certifies that', 0, 220, { align: 'center' });
+
+  doc.font('Heading')
+     .fontSize(36)
+     .fillColor('#333333')
+     .text(name, 0, 260, { align: 'center' });
+
+  doc.font('SubHeading')
+     .fontSize(24)
+     .fillColor('#555555')
+     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 320, { align: 'center' });
+
+  doc.font('Heading')
+     .fontSize(32)
+     .fillColor('#333333')
+     .text(course, 0, 360, { align: 'center' });
+
+  doc.font('Text')
+     .fontSize(18)
+     .fillColor('#777777')
+     .text(`on ${date}`, 0, 420, { align: 'center' });
+
+  addCommonElements(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
+};
+
+const generateModernMinimalistTemplate = async (doc, data) => {
+  const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
+
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
 
@@ -146,10 +199,12 @@ function generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, c
      .text('CERTIFIED', 0, 0, { align: 'center' })
      .restore();
 
-  addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
-}
+  addCommonElements(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
+};
 
-function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
+const generateVibrantAchievementTemplate = async (doc, data) => {
+  const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
+
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
 
@@ -213,53 +268,21 @@ function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer,
      .fill('#ffd700')
      .restore();
 
-  addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
-}
+  addCommonElements(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
+};
 
-function generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
+// Helper function to add common elements
+const addCommonElements = (doc, data) => {
+  const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
+
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
 
-  // Implement the classic elegance template generation here
-  // For now, we'll use a placeholder implementation
-  doc.rect(0, 0, pageWidth, pageHeight).fill('#f9f9f9');
-
-  doc.font('Heading')
-     .fontSize(42)
-     .fillColor('#333333')
-     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 100, { align: 'center' });
-
-  doc.font('SubHeading')
-     .fontSize(24)
-     .fillColor('#555555')
-     .text('This certifies that', 0, 220, { align: 'center' });
-
-  doc.font('Heading')
-     .fontSize(36)
-     .fillColor('#333333')
-     .text(name, 0, 260, { align: 'center' });
-
-  doc.font('SubHeading')
-     .fontSize(24)
-     .fillColor('#555555')
-     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 320, { align: 'center' });
-
-  doc.font('Heading')
-     .fontSize(32)
-     .fillColor('#333333')
-     .text(course, 0, 360, { align: 'center' });
-
+  // Add certificate type
   doc.font('Text')
-     .fontSize(18)
-     .fillColor('#777777')
-     .text(`on ${date}`, 0, 420, { align: 'center' });
-
-  addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
-}
-
-function addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId) {
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
+     .fontSize(24)
+     .fillColor('#333333')
+     .text(`Certificate of ${certificateType}`, 0, 440, { align: 'center' });
 
   // Additional Info
   if (additionalInfo) {
@@ -270,8 +293,8 @@ function addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, 
   }
 
   // Add logo if provided
-  if (logoBuffer) {
-    doc.image(logoBuffer, pageWidth - 150, 50, { width: 100 });
+  if (logo) {
+    doc.image(logo, pageWidth - 150, 50, { width: 100 });
   }
 
   // Add signatures
@@ -314,7 +337,7 @@ function addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, 
      .fontSize(10)
      .fillColor('#999')
      .text(`Certificate ID: ${uniqueId}`, 0, pageHeight - 30, { align: 'center', width: pageWidth, link: 'https://certificate4you.com/#/verify' });
-}
+};
 
 async function uploadToS3(buffer, key, contentType) {
   const command = new PutObjectCommand({

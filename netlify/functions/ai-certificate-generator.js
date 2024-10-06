@@ -110,12 +110,12 @@ exports.handler = async (event, context) => {
           data.name,
           additionalFields.course,
           data.date,
-          additionalFields.certificateType,
+          additionalFields.certificateType, // Make sure this is passed correctly
           additionalFields.issuer,
           additionalFields.additionalInfo || '',
           additionalFields.logo,
           additionalFields.signatures || [],
-          additionalFields.template || 'modern-minimalist'
+          additionalFields.template || 'classic-elegance'
         );
 
         const pdfBuffer = await getObjectFromS3(`certificates/${result.id}.pdf`);
