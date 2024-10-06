@@ -58,24 +58,55 @@ exports.handler = async (event, context) => {
   
       if (action === 'initialize') {
         // Handle initial AI interaction
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        const prompt = `I have a CSV file with the following data: ${JSON.stringify(fileData[0])}. What additional information should I collect to generate certificates? Please provide a list of fields and their types (text, dropdown, file, or signature).`;
+        const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
+        const prompt = `
+          I have a CSV file with the following data: ${JSON.stringify(fileData[0])}.
+          Based on this data, please suggest additional fields we should collect to generate certificates.
+          For each field, specify:
+          1. Field name
+          2. Field type (text, dropdown, file, or signature)
+          3. Whether it's optional or required
+          4. If it's a dropdown, suggest possible options
+
+          Format your response as a JSON object like this:
+          {
+            "fields": [
+              {
+                "name": "fieldName",
+                "type": "fieldType",
+                "optional": true/false,
+                "options": ["option1", "option2"] // Only for dropdown fields
+              },
+              // ... more fields
+            ]
+          }
+        `;
+        
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
-  
-        // Parse the AI response to extract fields and their types
-        const fields = parseAIResponse(text);
-  
+
+        let parsedFields;
+        try {
+          parsedFields = JSON.parse(text);
+        } catch (error) {
+          console.error('Failed to parse AI response:', error);
+          parsedFields = { fields: [] };
+        }
+
+        const firstField = parsedFields.fields[0] || null;
+
         return {
-            statusCode: 200,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: [text],
-              nextField: fields.length > 0 ? fields[0].name : null,
-              fieldType: fields.length > 0 ? fields[0].type : null,
-              remainingFields: fields.slice(1)
-            })
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [`Based on your data, I suggest collecting the following additional information:`],
+            nextField: firstField ? firstField.name : null,
+            fieldType: firstField ? firstField.type : null,
+            isOptional: firstField ? firstField.optional : false,
+            fieldOptions: firstField && firstField.type === 'dropdown' ? firstField.options : [],
+            remainingFields: parsedFields.fields.slice(1)
+          })
         };
       }
   
