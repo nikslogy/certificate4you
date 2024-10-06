@@ -15,6 +15,7 @@ function AICertificateGenerator() {
   const [fieldType, setFieldType] = useState(null);
   const [isOptional, setIsOptional] = useState(false);
   const [showGenerateButton, setShowGenerateButton] = useState(false);
+  const [fieldOptions, setFieldOptions] = useState([]);
 
   useEffect(() => {
     fetchApiKeys();
@@ -95,7 +96,7 @@ function AICertificateGenerator() {
   };
 
   const processAIResponse = async (result) => {
-    const { messages, nextField, certificateCount, template, zipUrl, remainingUsage } = result;
+    const { messages, nextField, fieldType, options, isOptional } = result;
 
     for (const message of messages) {
       addMessage('AI', message);
@@ -104,20 +105,19 @@ function AICertificateGenerator() {
 
     if (nextField) {
       setCurrentField(nextField);
-      addMessage('AI', `Please provide the ${nextField}:`);
+      setFieldType(fieldType);
+      setIsOptional(isOptional);
+      setFieldOptions(options || []);
+      addMessage('AI', `Please provide the ${nextField}${isOptional ? ' (optional)' : ''}:`);
     } else {
       setCurrentField(null);
-      if (certificateCount) {
-        addMessage('AI', `Generated ${certificateCount} certificates using the ${template} template.`);
-        addMessage('AI', `You have ${remainingUsage} certificates left to generate with this API key.`);
-        addMessage('AI', 'All certificates have been generated successfully! You can now download the ZIP file containing all certificates.');
-        addMessage('AI', 'Download ZIP', true, true, zipUrl);
-      }
+      setShowGenerateButton(true);
     }
   };
 
   const handleUserInput = async (e) => {
     e.preventDefault();
+    addMessage('User', userInput);
     setIsLoading(true);
 
     try {
@@ -139,16 +139,7 @@ function AICertificateGenerator() {
       }
 
       const result = await response.json();
-      addMessage('AI', result.messages[0]);
-      
-      if (result.nextField) {
-        setCurrentField(result.nextField);
-        setFieldType(result.fieldType);
-        setIsOptional(result.isOptional);
-      } else {
-        // All fields are filled, show certificate generation button
-        setShowGenerateButton(true);
-      }
+      await processAIResponse(result);
     } catch (error) {
       console.error('Error:', error);
       addMessage('AI', `An error occurred: ${error.message}`);
@@ -167,12 +158,34 @@ function AICertificateGenerator() {
 
   const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const handleDownload = (url) => {
-    window.open(url, '_blank');
-  };
+  const handleGenerateCertificates = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/.netlify/functions/ai-certificate-generator', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apiKey: selectedApiKey,
+          fileData,
+          generateCertificates: true,
+        }),
+      });
 
-  const handleGenerateCertificates = () => {
-    // Implement logic to generate certificates
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate certificates');
+      }
+
+      const result = await response.json();
+      addMessage('AI', `Successfully generated ${result.certificateCount} certificates.`);
+      addMessage('AI', 'Download Certificates', false, true, result.zipUrl);
+    } catch (error) {
+      console.error('Error:', error);
+      addMessage('AI', `An error occurred while generating certificates: ${error.message}`);
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -207,9 +220,9 @@ function AICertificateGenerator() {
         {chatMessages.map((message, index) => (
           <div key={index} className={`chat-message ${message.sender.toLowerCase()}`}>
             {message.isDownloadLink ? (
-              <button onClick={() => handleDownload(message.downloadUrl)} className="download-button">
+              <a href={message.downloadUrl} target="_blank" rel="noopener noreferrer" className="download-link">
                 {message.content}
-              </button>
+              </a>
             ) : (
               <p>{message.content}</p>
             )}
@@ -226,11 +239,19 @@ function AICertificateGenerator() {
               required={!isOptional}
             >
               <option value="">Select {currentField}</option>
-              {/* Add options based on the AI's suggestions */}
+              {fieldOptions.map((option, index) => (
+                <option key={index} value={option}>{option}</option>
+              ))}
             </select>
           ) : fieldType === 'signature' ? (
             <div>
               {/* Add signature upload/draw components */}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setUserInput(e.target.files[0])}
+                required={!isOptional}
+              />
             </div>
           ) : (
             <input
@@ -246,7 +267,9 @@ function AICertificateGenerator() {
       )}
 
       {showGenerateButton && (
-        <button onClick={handleGenerateCertificates}>Generate Certificates</button>
+        <button onClick={handleGenerateCertificates} disabled={isLoading}>
+          {isLoading ? 'Generating...' : 'Generate Certificates'}
+        </button>
       )}
     </div>
   );
