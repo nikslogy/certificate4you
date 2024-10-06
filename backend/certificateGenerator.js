@@ -12,337 +12,252 @@ const s3Client = new S3Client({
   },
 });
 
-const uniqueId = () => uuidv4();
+async function generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, template) {
+  return new Promise(async (resolve, reject) => {
+    const uniqueId = uuidv4();
 
-const generateCertificate = async (
-  name,
-  course,
-  date,
-  certificateType,
-  issuer,
-  additionalInfo,
-  logo,
-  signatures,
-  template
-) => {
-  const doc = new PDFDocument({
-    size: 'A4',
-    layout: 'landscape',
-    margins: { top: 50, bottom: 50, left: 50, right: 50 }
-  });
+    const doc = new PDFDocument({
+      layout: 'landscape',
+      size: 'A4',
+      margin: 0,
+    });
 
-  const buffers = [];
-  doc.on('data', buffers.push.bind(buffers));
-  doc.on('end', async () => {
-    const pdfBuffer = Buffer.concat(buffers);
-    
+    const buffers = [];
+    doc.on('data', buffers.push.bind(buffers));
+    doc.on('end', async () => {
+      const pdfBuffer = Buffer.concat(buffers);
+      
+      try {
+        await uploadToS3(pdfBuffer, `certificates/${uniqueId}.pdf`, 'application/pdf');
+        await storeCertificateData(uniqueId, name, course, date, certificateType, issuer, template);
+        const url = await generatePresignedUrl(`certificates/${uniqueId}.pdf`);
+        resolve({ 
+          id: uniqueId, 
+          url: url
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+
     try {
-      await uploadToS3(pdfBuffer, `certificates/${uniqueId}.pdf`, 'application/pdf');
-      await storeCertificateData(uniqueId, name, course, date, certificateType, issuer, template);
-      const url = await generatePresignedUrl(`certificates/${uniqueId}.pdf`);
-      resolve({ 
-        id: uniqueId, 
-        url: url
-      });
+      // Load custom fonts
+      const headingFont = await getFileFromS3('fonts/Montserrat-Bold.ttf');
+      const subHeadingFont = await getFileFromS3('fonts/Montserrat-Medium.ttf');
+      const textFont = await getFileFromS3('fonts/Montserrat-Regular.ttf');
+
+      doc.registerFont('Heading', headingFont);
+      doc.registerFont('SubHeading', subHeadingFont);
+      doc.registerFont('Text', textFont);
     } catch (error) {
-      reject(error);
+      console.error('Error loading custom fonts:', error);
+      // Use fallback fonts if custom fonts fail to load
+      doc.font('Helvetica-Bold');
+      doc.font('Helvetica');
     }
+
+    switch (template) {
+      case 'modern-minimalist':
+        generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+        break;
+      case 'vibrant-achievement':
+        generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+        break;
+      default:
+        generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+    }
+
+    doc.end();
   });
+}
 
-  try {
-    // Load custom fonts
-    const headingFont = await getFileFromS3('fonts/Montserrat-Bold.ttf');
-    const subHeadingFont = await getFileFromS3('fonts/Montserrat-Medium.ttf');
-    const textFont = await getFileFromS3('fonts/Montserrat-Regular.ttf');
+function generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
+  // Background color
+  doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f5f5f5');
 
-    doc.registerFont('Heading', headingFont);
-    doc.registerFont('SubHeading', subHeadingFont);
-    doc.registerFont('Text', textFont);
-  } catch (error) {
-    console.error('Error loading custom fonts:', error);
-    // Use fallback fonts if custom fonts fail to load
-    doc.font('Helvetica-Bold');
-    doc.font('Helvetica');
-  }
-
-  // Choose the appropriate template based on the certificateType
-  switch (template) {
-    case 'modern-minimalist':
-      await generateModernMinimalistTemplate(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
-      break;
-    case 'vibrant-achievement':
-      await generateVibrantAchievementTemplate(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
-      break;
-    case 'classic-elegance':
-    default:
-      await generateClassicEleganceTemplate(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
-      break;
-  }
-
-  doc.end();
-
-  const id = uuidv4(); // Generate a unique ID for the certificate
-
-  return { id };
-};
-
-const generateClassicEleganceTemplate = async (doc, data) => {
-  const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
-
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
-
-  // Implement the classic elegance template generation here
-  // For now, we'll use a placeholder implementation
-  doc.rect(0, 0, pageWidth, pageHeight).fill('#f9f9f9');
-
-  doc.font('Heading')
-     .fontSize(42)
-     .fillColor('#333333')
-     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 100, { align: 'center' });
-
-  doc.font('SubHeading')
-     .fontSize(24)
-     .fillColor('#555555')
-     .text('This certifies that', 0, 220, { align: 'center' });
-
-  doc.font('Heading')
-     .fontSize(36)
-     .fillColor('#333333')
-     .text(name, 0, 260, { align: 'center' });
-
-  doc.font('SubHeading')
-     .fontSize(24)
-     .fillColor('#555555')
-     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 320, { align: 'center' });
-
-  doc.font('Heading')
-     .fontSize(32)
-     .fillColor('#333333')
-     .text(course, 0, 360, { align: 'center' });
-
-  doc.font('Text')
-     .fontSize(18)
-     .fillColor('#777777')
-     .text(`on ${date}`, 0, 420, { align: 'center' });
-
-  addCommonElements(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
-};
-
-const generateModernMinimalistTemplate = async (doc, data) => {
-  const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
-
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
-
-  // Background
-  doc.rect(0, 0, pageWidth, pageHeight).fill('#f9f9f9');
-
-  // Subtle geometric pattern
-  const patternSize = 20;
-  doc.opacity(0.1);
-  for (let x = 0; x < pageWidth; x += patternSize) {
-    for (let y = 0; y < pageHeight; y += patternSize) {
-      doc.polygon([x, y], [x + patternSize, y], [x + patternSize / 2, y + patternSize])
-         .fill('#333333');
-    }
-  }
-  doc.opacity(1);
-
-  // Sleek border
+  // Border
   const borderWidth = 20;
-  doc.rect(borderWidth, borderWidth, pageWidth - 2 * borderWidth, pageHeight - 2 * borderWidth)
+  doc.rect(borderWidth, borderWidth, doc.page.width - (borderWidth * 2), doc.page.height - (borderWidth * 2))
      .lineWidth(3)
-     .stroke('#333333');
+     .stroke('#1e3a8a');
 
   // Header
   doc.font('Heading')
-     .fontSize(42)
-     .fillColor('#333333')
+     .fontSize(40)
+     .fillColor('#1e3a8a')
      .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 100, { align: 'center' });
 
-  // Horizontal lines
-  const lineY = 160;
-  doc.moveTo(100, lineY).lineTo(pageWidth - 100, lineY).lineWidth(1).stroke('#333333');
-  doc.moveTo(100, lineY + 3).lineTo(pageWidth - 100, lineY + 3).lineWidth(1).stroke('#333333');
-
   // Content
   doc.font('SubHeading')
-     .fontSize(24)
-     .fillColor('#555555')
-     .text('This certifies that', 0, 220, { align: 'center' });
-
-  doc.font('Heading')
-     .fontSize(36)
-     .fillColor('#333333')
-     .text(name, 0, 260, { align: 'center' });
-
-  doc.font('SubHeading')
-     .fontSize(24)
-     .fillColor('#555555')
-     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 320, { align: 'center' });
-
-  doc.font('Heading')
-     .fontSize(32)
-     .fillColor('#333333')
-     .text(course, 0, 360, { align: 'center' });
-
-  doc.font('Text')
-     .fontSize(18)
-     .fillColor('#777777')
-     .text(`on ${date}`, 0, 420, { align: 'center' });
-
-  // Add a subtle watermark
-  doc.save()
-     .translate(pageWidth / 2, pageHeight / 2)
-     .rotate(-45)
-     .font('Heading')
-     .fontSize(144)
-     .fillOpacity(0.03)
-     .fillColor('#000000')
-     .text('CERTIFIED', 0, 0, { align: 'center' })
-     .restore();
-
-  addCommonElements(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
-};
-
-const generateVibrantAchievementTemplate = async (doc, data) => {
-  const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
-
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
-
-  // Gradient background
-  const grad = doc.linearGradient(0, 0, pageWidth, pageHeight);
-  grad.stop(0, '#1a5f7a').stop(1, '#57c5b6');
-  doc.rect(0, 0, pageWidth, pageHeight).fill(grad);
-
-  // Decorative elements
-  doc.circle(0, 0, 200).fillOpacity(0.1).fill('#ffffff');
-  doc.circle(pageWidth, pageHeight, 300).fillOpacity(0.1).fill('#ffffff');
-
-  // White content area
-  doc.roundedRect(40, 40, pageWidth - 80, pageHeight - 80, 20)
-     .fillOpacity(0.9)
-     .fill('#ffffff');
-
-  // Reset fill opacity for text
-  doc.fillOpacity(1);
-
-  // Header
-  doc.font('Heading')
-     .fontSize(42)
-     .fillColor('#1a5f7a')
-     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 80, { align: 'center' });
-
-  // Gold accent line
-  doc.moveTo(100, 140).lineTo(pageWidth - 100, 140).lineWidth(3).stroke('#ffd700');
-
-  // Content
-  doc.font('SubHeading')
-     .fontSize(24)
-     .fillColor('#2c3e50')
+     .fontSize(22)
+     .fillColor('#333')
      .text('This is to certify that', 0, 180, { align: 'center' });
 
   doc.font('Heading')
-     .fontSize(36)
-     .fillColor('#1a5f7a')
+     .fontSize(32)
+     .fillColor('#1e3a8a')
      .text(name, 0, 220, { align: 'center' });
 
   doc.font('SubHeading')
-     .fontSize(24)
-     .fillColor('#2c3e50')
+     .fontSize(22)
+     .fillColor('#333')
      .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 280, { align: 'center' });
 
   doc.font('Heading')
-     .fontSize(32)
-     .fillColor('#1a5f7a')
+     .fontSize(28)
+     .fillColor('#1e3a8a')
      .text(course, 0, 320, { align: 'center' });
 
   doc.font('Text')
      .fontSize(18)
-     .fillColor('#34495e')
+     .fillColor('#666')
      .text(`on ${date}`, 0, 380, { align: 'center' });
 
-  // Add a ribbon graphic
-  doc.save()
-     .translate(60, 40)
-     .rotate(-15)
-     .polygon([0, 0], [40, 0], [40, 80], [20, 100], [0, 80])
-     .fill('#ffd700')
-     .restore();
+  addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
+}
 
-  addCommonElements(doc, { name, course, date, certificateType, issuer, additionalInfo, logo, signatures });
-};
+function generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
+  // Background
+  doc.rect(0, 0, doc.page.width, doc.page.height).fill('#ffffff');
 
-// Helper function to add common elements
-const addCommonElements = (doc, data) => {
-  const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
-  const id = uniqueId();
+  // Header
+  doc.font('Heading')
+     .fontSize(40)
+     .fillColor('#333333')
+     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 100, { align: 'center' });
 
+  // Content
+  doc.font('SubHeading')
+     .fontSize(24)
+     .fillColor('#555555')
+     .text('This is to certify that', 0, 180, { align: 'center' });
+
+  doc.font('Heading')
+     .fontSize(36)
+     .fillColor('#333333')
+     .text(name, 0, 220, { align: 'center' });
+
+  doc.font('SubHeading')
+     .fontSize(24)
+     .fillColor('#555555')
+     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 280, { align: 'center' });
+
+  doc.font('Heading')
+     .fontSize(32)
+     .fillColor('#333333')
+     .text(course, 0, 320, { align: 'center' });
+
+  doc.font('Text')
+     .fontSize(20)
+     .fillColor('#777777')
+     .text(`on ${date}`, 0, 380, { align: 'center' });
+
+  addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
+}
+
+function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
+  // Background
+  doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f0f0f0');
+
+  // Colorful top banner
+  doc.rect(0, 0, doc.page.width, 100).fill('#4a90e2');
+
+  // Header
+  doc.font('Heading')
+     .fontSize(44)
+     .fillColor('#ffffff')
+     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 30, { align: 'center' });
+
+  // Content
+  doc.font('SubHeading')
+     .fontSize(26)
+     .fillColor('#333333')
+     .text('This is to certify that', 0, 140, { align: 'center' });
+
+  doc.font('Heading')
+     .fontSize(38)
+     .fillColor('#4a90e2')
+     .text(name, 0, 180, { align: 'center' });
+
+  doc.font('SubHeading')
+     .fontSize(26)
+     .fillColor('#333333')
+     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 240, { align: 'center' });
+
+  doc.font('Heading')
+     .fontSize(34)
+     .fillColor('#4a90e2')
+     .text(course, 0, 280, { align: 'center' });
+
+  doc.font('Text')
+     .fontSize(22)
+     .fillColor('#555555')
+     .text(`on ${date}`, 0, 340, { align: 'center' });
+
+  // Add decorative elements
+  doc.circle(50, 50, 30).fillAndStroke('#f9a825', '#f57f17');
+  doc.circle(doc.page.width - 50, doc.page.height - 50, 30).fillAndStroke('#f9a825', '#f57f17');
+
+  addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
+}
+
+function addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId) {
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
-
-  // Add certificate type
-  doc.font('Text')
-     .fontSize(24)
-     .fillColor('#333333')
-     .text(`Certificate of ${certificateType}`, 0, 440, { align: 'center' });
 
   // Additional Info
   if (additionalInfo) {
     doc.font('Text')
        .fontSize(14)
        .fillColor('#666')
-       .text(additionalInfo, 100, 440, { align: 'center', width: pageWidth - 200 });
+       .text(additionalInfo, 50, 420, { align: 'center', width: pageWidth - 100 });
   }
 
   // Add logo if provided
-  if (logo) {
-    doc.image(logo, pageWidth - 150, 50, { width: 100 });
+  if (logoBuffer) {
+    doc.image(logoBuffer, 700, 50, { width: 100 });
   }
 
   // Add signatures
-  const signatureWidth = 150;
-  const signatureHeight = 60;
-  const marginBottom = 120;
-  const signaturesY = pageHeight - marginBottom;
+  const signatureWidth = 130;
+  const signatureHeight = 50;
+  const marginX = 50;
+  const marginBottom = 100;
 
   signatures.forEach((sig, index) => {
-    let x;
+    let x, y;
     
     if (signatures.length === 1) {
       x = (pageWidth - signatureWidth) / 2;
     } else if (signatures.length === 2) {
       x = index === 0 ? pageWidth / 4 - signatureWidth / 2 : (3 * pageWidth) / 4 - signatureWidth / 2;
     } else {
-      x = 100 + (index * (pageWidth - 200 - signatureWidth)) / 2;
+      x = marginX + (index * (pageWidth - 2 * marginX - signatureWidth)) / 2;
     }
+    
+    y = pageHeight - marginBottom - signatureHeight;
 
     if (sig.image) {
-      doc.image(sig.image, x, signaturesY, { width: signatureWidth });
+      doc.image(sig.image, x, y, { width: signatureWidth });
     }
-    doc.moveTo(x, signaturesY + signatureHeight)
-       .lineTo(x + signatureWidth, signaturesY + signatureHeight)
-       .stroke('#333333');
     doc.font('Text')
        .fontSize(12)
        .fillColor('#666')
-       .text(sig.name, x, signaturesY + signatureHeight + 10, { width: signatureWidth, align: 'center' });
+       .text(sig.name, x, y + signatureHeight + 10, { width: signatureWidth, align: 'center' });
   });
 
-  // Add issuer 
-  doc.font('SubHeading')
-     .fontSize(16)
-     .fillColor('#333333')
+  // Add issuer
+  doc.font('Text')
+     .fontSize(14)
+     .fillColor('#666')
      .text(issuer, 0, pageHeight - 60, { align: 'center', width: pageWidth });
 
   // Add unique ID
   doc.font('Text')
      .fontSize(10)
      .fillColor('#999')
-     .text(`Certificate ID: ${uniqueId}`, 0, pageHeight - 30, { align: 'center', width: pageWidth, link: 'https://certificate4you.com/#/verify' });
-};
+     .text(`Certificate ID: ${uniqueId}`, 0, pageHeight - 40, { align: 'center', width: pageWidth, link: 'https://certificate4you.com/#/verify' });
+}
 
 async function uploadToS3(buffer, key, contentType) {
   const command = new PutObjectCommand({
