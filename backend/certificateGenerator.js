@@ -12,14 +12,9 @@ const s3Client = new S3Client({
   },
 });
 
-const generateCertificate = async (data) => {
-  try {
-    const { name, course, date, certificateType, issuer, template, additionalInfo, logo, signatures } = data;
-
-    // Validate required fields
-    if (!name || !course || !date || !certificateType || !issuer || !template) {
-      throw new Error('Missing required certificate data');
-    }
+async function generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, template) {
+  return new Promise(async (resolve, reject) => {
+    const uniqueId = uuidv4();
 
     const doc = new PDFDocument({
       layout: 'landscape',
@@ -27,31 +22,56 @@ const generateCertificate = async (data) => {
       margin: 0,
     });
 
-    const uniqueId = uuidv4();
+    const buffers = [];
+    doc.on('data', buffers.push.bind(buffers));
+    doc.on('end', async () => {
+      const pdfBuffer = Buffer.concat(buffers);
+      
+      try {
+        await uploadToS3(pdfBuffer, `certificates/${uniqueId}.pdf`, 'application/pdf');
+        await storeCertificateData(uniqueId, name, course, date, certificateType, issuer, template);
+        const url = await generatePresignedUrl(`certificates/${uniqueId}.pdf`);
+        resolve({ 
+          id: uniqueId, 
+          url: url
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
 
-    // ... (rest of the function remains the same)
+    try {
+      // Load custom fonts
+      const headingFont = await getFileFromS3('fonts/Montserrat-Bold.ttf');
+      const subHeadingFont = await getFileFromS3('fonts/Montserrat-Medium.ttf');
+      const textFont = await getFileFromS3('fonts/Montserrat-Regular.ttf');
 
-    switch (template) {
-      case 'Classic Elegance':
-        await generateClassicEleganceTemplate(doc, data);
-        break;
-      // ... (other cases)
-      default:
-        throw new Error(`Unknown template: ${template}`);
+      doc.registerFont('Heading', headingFont);
+      doc.registerFont('SubHeading', subHeadingFont);
+      doc.registerFont('Text', textFont);
+    } catch (error) {
+      console.error('Error loading custom fonts:', error);
+      // Use fallback fonts if custom fonts fail to load
+      doc.font('Helvetica-Bold');
+      doc.font('Helvetica');
     }
 
-    // ... (rest of the function remains the same)
-  } catch (error) {
-    console.error('Error generating certificate:', error);
-    throw error;
-  }
-};
+    switch (template) {
+      case 'modern-minimalist':
+        generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+        break;
+      case 'vibrant-achievement':
+        generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+        break;
+      default:
+        generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+    }
+
+    doc.end();
+  });
+}
 
 function generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
-  if (!certificateType) {
-    certificateType = 'completion'; // Provide a default value
-    console.warn('Certificate type not provided, using default: completion');
-  }
   // Background color
   doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f5f5f5');
 
@@ -181,14 +201,7 @@ function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer,
   addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
 }
 
-const addCommonElements = (doc, data) => {
-  const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
-
-  // Add error checking for required fields
-  if (!name || !course || !date || !certificateType || !issuer) {
-    throw new Error('Missing required certificate data');
-  }
-
+function addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId) {
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
 
@@ -201,8 +214,8 @@ const addCommonElements = (doc, data) => {
   }
 
   // Add logo if provided
-  if (logo) {
-    doc.image(logo, 700, 50, { width: 100 });
+  if (logoBuffer) {
+    doc.image(logoBuffer, 700, 50, { width: 100 });
   }
 
   // Add signatures
@@ -211,29 +224,27 @@ const addCommonElements = (doc, data) => {
   const marginX = 50;
   const marginBottom = 100;
 
-  if (signatures && Array.isArray(signatures)) {
-    signatures.forEach((signature, index) => {
-      let x, y;
-      
-      if (signatures.length === 1) {
-        x = (pageWidth - signatureWidth) / 2;
-      } else if (signatures.length === 2) {
-        x = index === 0 ? pageWidth / 4 - signatureWidth / 2 : (3 * pageWidth) / 4 - signatureWidth / 2;
-      } else {
-        x = marginX + (index * (pageWidth - 2 * marginX - signatureWidth)) / 2;
-      }
-      
-      y = pageHeight - marginBottom - signatureHeight;
+  signatures.forEach((sig, index) => {
+    let x, y;
+    
+    if (signatures.length === 1) {
+      x = (pageWidth - signatureWidth) / 2;
+    } else if (signatures.length === 2) {
+      x = index === 0 ? pageWidth / 4 - signatureWidth / 2 : (3 * pageWidth) / 4 - signatureWidth / 2;
+    } else {
+      x = marginX + (index * (pageWidth - 2 * marginX - signatureWidth)) / 2;
+    }
+    
+    y = pageHeight - marginBottom - signatureHeight;
 
-      if (signature.image) {
-        doc.image(signature.image, x, y, { width: signatureWidth });
-      }
-      doc.font('Text')
-         .fontSize(12)
-         .fillColor('#666')
-         .text(signature.name, x, y + signatureHeight + 10, { width: signatureWidth, align: 'center' });
-    });
-  }
+    if (sig.image) {
+      doc.image(sig.image, x, y, { width: signatureWidth });
+    }
+    doc.font('Text')
+       .fontSize(12)
+       .fillColor('#666')
+       .text(sig.name, x, y + signatureHeight + 10, { width: signatureWidth, align: 'center' });
+  });
 
   // Add issuer
   doc.font('Text')
@@ -246,7 +257,7 @@ const addCommonElements = (doc, data) => {
      .fontSize(10)
      .fillColor('#999')
      .text(`Certificate ID: ${uniqueId}`, 0, pageHeight - 40, { align: 'center', width: pageWidth, link: 'https://certificate4you.com/#/verify' });
-};
+}
 
 async function uploadToS3(buffer, key, contentType) {
   const command = new PutObjectCommand({

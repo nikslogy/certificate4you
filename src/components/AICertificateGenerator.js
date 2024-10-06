@@ -314,7 +314,8 @@ function AICertificateGenerator() {
 
   return (
     <div className="ai-certificate-generator">
-      <h1>AI Certificate Generator</h1>
+      { <h1>This feature is coming soon!</h1>
+      /* <h1>AI Certificate Generator</h1>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="file">Upload CSV or Excel file:</label>
@@ -431,7 +432,7 @@ function AICertificateGenerator() {
         <button onClick={handleGenerateCertificates} disabled={isLoading}>
           {isLoading ? 'Generating...' : 'Generate Certificates'}
         </button>
-      )}
+      )} */}
     </div>
   );
 }

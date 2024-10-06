@@ -74,6 +74,8 @@ function App() {
                       <div className="menu-section-title">Certificate Actions</div>
                       <li><NavLink to="/generate" onClick={() => setMenuOpen(false)}>Generate</NavLink></li>
                       <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
+                      <li><NavLink to="/ai-generate" onClick={() => setMenuOpen(false)}>AI Generate</NavLink></li>
+
                     </div>
                     <div className="menu-section">
                       <div className="menu-section-title">Resources</div>
