@@ -50,19 +50,23 @@ function AICertificateGenerator() {
     setFile(e.target.files[0]);
   };
 
-  const readFileData = (file) => {
+  const readFileData = async (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet);
-        resolve(json);
+        try {
+          const data = e.target.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(sheet);
+          resolve(Array.isArray(jsonData) ? jsonData : []);
+        } catch (error) {
+          reject(new Error('Failed to parse file data'));
+        }
       };
-      reader.onerror = (error) => reject(error);
-      reader.readAsArrayBuffer(file);
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsBinaryString(file);
     });
   };
 
@@ -72,7 +76,11 @@ function AICertificateGenerator() {
 
     try {
       const data = await readFileData(file);
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error('Invalid or empty file data');
+      }
       setFileData(data);
+
       const response = await fetch('/.netlify/functions/ai-certificate-generator', {
         method: 'POST',
         headers: {
@@ -86,7 +94,7 @@ function AICertificateGenerator() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to process certificates');
+        throw new Error(errorData.error || 'Failed to process data');
       }
 
       const result = await response.json();
@@ -94,9 +102,9 @@ function AICertificateGenerator() {
     } catch (error) {
       console.error('Error:', error);
       addMessage('AI', `An error occurred: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   const processAIResponse = async (result) => {
