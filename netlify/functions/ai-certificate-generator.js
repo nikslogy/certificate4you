@@ -26,133 +26,88 @@ const dynamoDb = DynamoDBDocument.from(new DynamoDB({
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 exports.handler = async (event, context) => {
-    if (event.httpMethod !== 'POST') {
-      return { statusCode: 405, body: 'Method Not Allowed' };
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
+  }
+
+  try {
+    console.log('Received request:', event.body);
+    const { apiKey, fileData, ...additionalFields } = JSON.parse(event.body);
+
+    console.log('Validating API key');
+    const apiKeyData = await validateApiKey(apiKey);
+    if (!apiKeyData) {
+      return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
     }
-  
-    try {
-      console.log('Received request:', event.body);
-      const { apiKey, fileData, ...additionalFields } = JSON.parse(event.body);
-  
-      console.log('Validating API key');
-      const apiKeyData = await validateApiKey(apiKey);
-      if (!apiKeyData) {
-        return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
-      }
-  
-      console.log('Processing certificate data');
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-  
-      const requiredFields = ['course', 'issuer', 'certificateType'];
-      const missingFields = requiredFields.filter(field => !additionalFields[field]);
-  
-      if (missingFields.length > 0) {
-        const nextField = missingFields[0];
-        let prompt = `Based on the following certificate data for multiple people:
-        ${JSON.stringify(fileData)}
-        
-        Additional information provided:
-        ${JSON.stringify(additionalFields)}
-        
-        Please provide guidance for the user to fill in the "${nextField}" field. This will be common for all certificates. Be concise and specific.`;
-  
-        if (nextField === 'certificateType') {
-          prompt += `\nProvide 3-5 options for certificate types as a comma-separated list.`;
-        }
-  
-        const result = await model.generateContent(prompt);
-        const aiResponse = result.response.text();
-  
-        let fieldType = 'text';
-        let options = [];
-  
-        if (nextField === 'certificateType') {
-          fieldType = 'dropdown';
-          options = aiResponse.split(',').map(option => option.trim());
-        }
-  
-        return {
-          statusCode: 200,
-          body: JSON.stringify({
-            messages: [aiResponse],
-            nextField,
-            fieldType,
-            options,
-            isOptional: false
-          })
-        };
-      } else if (additionalFields.additionalInfo === undefined) {
-        return {
-          statusCode: 200,
-          body: JSON.stringify({
-            messages: ["Would you like to add any additional information to the certificates? This is optional and will be the same for all certificates."],
-            nextField: 'additionalInfo',
-            fieldType: 'text',
-            isOptional: true
-          })
-        };
-      } else if (additionalFields.signatures === undefined) {
-        return {
-          statusCode: 200,
-          body: JSON.stringify({
-            messages: ["Would you like to add any signatures to the certificates? You can add up to 3 signatures. These will be the same for all certificates."],
-            nextField: 'signatures',
-            fieldType: 'signature',
-            isOptional: true
-          })
-        };
-    } else {
-      // All required fields are present, generate certificates
-      const certificateCount = fileData.length;
-      const zip = new JSZip();
-      for (const data of fileData) {
-        console.log('Processing certificate for:', data.name);
-        const result = await generateCertificate(
-          data.name,
-          additionalFields.course,
-          data.date,
-          additionalFields.certificateType,
-          additionalFields.issuer,
-          additionalFields.additionalInfo || '',
-          additionalFields.logo,
-          additionalFields.signatures || [],
-          additionalFields.template || 'modern-minimalist'
-        );
-        console.log('Result from generateCertificate:', result);
 
-        if (!result || !result.id) {
-          console.error('Invalid result from generateCertificate:', result);
-          throw new Error('Failed to generate certificate: Invalid result');
-        }
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-        const pdfBuffer = await getObjectFromS3(`certificates/${result.id}.pdf`);
-        zip.file(`${data.name}_certificate.pdf`, pdfBuffer);
+    const requiredFields = ['course', 'issuer', 'certificateType', 'additionalInfo', 'template'];
+    const missingFields = requiredFields.filter(field => !additionalFields[field]);
+
+    if (missingFields.length > 0) {
+      const nextField = missingFields[0];
+      let prompt = `Based on the following certificate data for multiple people:
+      ${JSON.stringify(fileData)}
+      
+      Additional information provided:
+      ${JSON.stringify(additionalFields)}
+      
+      Please provide guidance for the user to fill in the "${nextField}" field. This will be common for all certificates. Be concise and specific.`;
+
+      if (nextField === 'certificateType') {
+        prompt += `\nSuggest 3-5 appropriate certificate types based on the course and data provided. Present these as a comma-separated list.`;
       }
 
-      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-      const zipKey = `bulk_certificates/${uuidv4()}.zip`;
-      await uploadToS3(zipBuffer, zipKey, 'application/zip');
-      const zipUrl = await generatePresignedUrl(zipKey);
-
-      // Update API key usage
-      await dynamoDb.update({
-        TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-        Key: { userId: apiKeyData.userId, apiKey: apiKey },
-        UpdateExpression: 'SET usageCount = usageCount + :inc',
-        ExpressionAttributeValues: { ':inc': certificateCount },
-      });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
 
       return {
         statusCode: 200,
         body: JSON.stringify({
-          messages: [`Great! All required information has been provided. ${certificateCount} certificates have been generated.`],
-          certificateCount,
-          template: additionalFields.template || 'modern-minimalist',
-          zipUrl,
-          remainingUsage: apiKeyData.limit - (apiKeyData.usageCount + certificateCount)
+          messages: [text],
+          nextField,
+          fieldType: nextField === 'additionalInfo' ? 'textarea' : 'text',
+          options: nextField === 'certificateType' ? text.split(',').map(t => t.trim()) : [],
+          isOptional: nextField === 'additionalInfo'
         })
       };
     }
+
+    // All fields are provided, generate certificates
+    console.log('Generating certificates');
+    const zip = new JSZip();
+
+    for (const data of fileData) {
+      const uniqueId = uuidv4();
+      const result = await generateCertificate(
+        data.name,
+        additionalFields.course,
+        data.date,
+        additionalFields.logo,
+        additionalFields.certificateType,
+        additionalFields.issuer,
+        additionalFields.additionalInfo,
+        additionalFields.signatures,
+        additionalFields.template
+      );
+
+      const pdfBuffer = await getObjectFromS3(`certificates/${uniqueId}.pdf`);
+      zip.file(`${data.name}_certificate.pdf`, pdfBuffer);
+    }
+
+    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+    const zipKey = `bulk_certificates_${Date.now()}.zip`;
+    await uploadToS3(zipBuffer, zipKey, 'application/zip');
+
+    const downloadUrl = await generatePresignedUrl(zipKey);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ url: downloadUrl })
+    };
+
   } catch (error) {
     console.error('Detailed error:', error);
     return {
