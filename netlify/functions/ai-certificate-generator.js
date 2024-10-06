@@ -32,7 +32,7 @@ exports.handler = async (event, context) => {
 
   try {
     console.log('Received request:', event.body);
-    const { apiKey, fileData, additionalInfo, logo, signatures, template } = JSON.parse(event.body);
+    const { apiKey, fileData, ...additionalFields } = JSON.parse(event.body);
 
     console.log('Validating API key');
     const apiKeyData = await validateApiKey(apiKey);
@@ -43,69 +43,76 @@ exports.handler = async (event, context) => {
     console.log('Generating AI content');
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-    const prompt = `Analyze the following certificate data and provide insights:
-    ${JSON.stringify(fileData)}
-    
-    Additional information provided:
-    ${JSON.stringify(additionalInfo)}
-    
-    1. How many certificates need to be generated?
-    2. List all the fields present in the data.
-    3. Confirm that all required fields are present (name, course, date, certificateType, issuer).
-    4. Acknowledge the additional information and optional fields provided (additionalInfo, logo, signatures).
-    5. Confirm the selected certificate template: ${template}.
-    6. Are there any patterns or interesting insights in the data?
-    
-    Respond in a conversational manner, as if you're talking to the user.`;
+    const requiredFields = ['course', 'issuer', 'certificateType'];
+    const missingFields = requiredFields.filter(field => !additionalFields[field]);
 
-    const result = await model.generateContent(prompt);
-    const aiResponse = result.response.text();
+    if (missingFields.length > 0) {
+      const prompt = `Analyze the following certificate data:
+      ${JSON.stringify(fileData)}
+      
+      Additional information provided:
+      ${JSON.stringify(additionalFields)}
+      
+      The next required field is: ${missingFields[0]}
+      
+      Please provide a suggestion for the ${missingFields[0]} based on the data and any additional context.
+      Respond in a conversational manner, as if you're talking to the user.`;
 
-    const certificateCount = fileData.length;
-    const messages = aiResponse.split('\n').filter(msg => msg.trim() !== '');
+      const result = await model.generateContent(prompt);
+      const aiResponse = result.response.text();
 
-    // Generate certificates
-    const zip = new JSZip();
-    for (const data of fileData) {
-      const result = await generateCertificate(
-        data.name,
-        additionalInfo.course,
-        data.date,
-        'completion', // You might want to make this configurable
-        additionalInfo.issuer,
-        additionalInfo.additionalInfo || '',
-        logo,
-        signatures,
-        template
-      );
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          messages: [aiResponse],
+          nextField: missingFields[0]
+        })
+      };
+    } else {
+      // All required fields are present, generate certificates
+      const certificateCount = fileData.length;
+      const zip = new JSZip();
+      for (const data of fileData) {
+        const result = await generateCertificate(
+          data.name,
+          additionalFields.course,
+          data.date,
+          additionalFields.certificateType,
+          additionalFields.issuer,
+          additionalFields.additionalInfo || '',
+          additionalFields.logo,
+          additionalFields.signatures,
+          additionalFields.template || 'modern-minimalist'
+        );
 
-      const pdfBuffer = await getObjectFromS3(`certificates/${result.id}.pdf`);
-      zip.file(`${data.name}_certificate.pdf`, pdfBuffer);
+        const pdfBuffer = await getObjectFromS3(`certificates/${result.id}.pdf`);
+        zip.file(`${data.name}_certificate.pdf`, pdfBuffer);
+      }
+
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      const zipKey = `bulk_certificates/${uuidv4()}.zip`;
+      await uploadToS3(zipBuffer, zipKey, 'application/zip');
+      const zipUrl = await generatePresignedUrl(zipKey);
+
+      // Update API key usage
+      await dynamoDb.update({
+        TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+        Key: { userId: apiKeyData.userId, apiKey: apiKey },
+        UpdateExpression: 'SET usageCount = usageCount + :inc',
+        ExpressionAttributeValues: { ':inc': certificateCount },
+      });
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          messages: [`Great! All required information has been provided. ${certificateCount} certificates have been generated.`],
+          certificateCount,
+          template: additionalFields.template || 'modern-minimalist',
+          zipUrl,
+          remainingUsage: apiKeyData.limit - (apiKeyData.usageCount + certificateCount)
+        })
+      };
     }
-
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-    const zipKey = `bulk_certificates/${uuidv4()}.zip`;
-    await uploadToS3(zipBuffer, zipKey, 'application/zip');
-    const zipUrl = await generatePresignedUrl(zipKey);
-
-    // Update API key usage
-    await dynamoDb.update({
-      TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-      Key: { userId: apiKeyData.userId, apiKey: apiKey },
-      UpdateExpression: 'SET usageCount = usageCount + :inc',
-      ExpressionAttributeValues: { ':inc': certificateCount },
-    });
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        messages,
-        certificateCount,
-        template,
-        zipUrl,
-        remainingUsage: apiKeyData.limit - (apiKeyData.usageCount + certificateCount)
-      })
-    };
   } catch (error) {
     console.error('Detailed error:', error);
     return {
