@@ -114,36 +114,43 @@ function AICertificateGenerator() {
       addMessage('AI', 'Received an invalid response from the server.');
       return;
     }
-
-    const { messages, nextField, fieldType, options, isOptional } = result;
-
-    if (Array.isArray(messages)) {
-      for (const message of messages) {
-        addMessage('AI', message);
-        await delay(1000);
+  
+    const { messages, nextField, fieldType, options, isOptional, url } = result;
+    
+    if (url) {
+        // This is the final response with the generated certificates
+        addMessage('AI', 'Certificates generated successfully!', false, true, url);
+        setShowGenerateButton(false);
+        return;
       }
-    } else if (typeof messages === 'string') {
-      addMessage('AI', messages);
-      await delay(1000);
-    } else if (messages === undefined) {
-      console.warn('No messages received from the server');
-      addMessage('AI', 'Processing your request...');
-    } else {
-      console.warn('Unexpected messages format:', messages);
-      addMessage('AI', 'Received an unexpected response format.');
-    }
 
-    if (nextField) {
-      setCurrentField(nextField);
-      setFieldType(fieldType || 'text');
-      setIsOptional(!!isOptional);
-      setFieldOptions(Array.isArray(options) ? options : []);
-      addMessage('AI', `Please provide the ${nextField}${isOptional ? ' (optional)' : ''}:`);
-    } else {
-      setCurrentField(null);
-      setShowGenerateButton(true);
-    }
-  };
+      if (Array.isArray(messages)) {
+        for (const message of messages) {
+          addMessage('AI', message);
+          await delay(1000);
+        }
+      } else if (typeof messages === 'string') {
+        addMessage('AI', messages);
+        await delay(1000);
+      } else if (messages === undefined) {
+        console.warn('No messages received from the server');
+        addMessage('AI', 'Processing your request...');
+      } else {
+        console.warn('Unexpected messages format:', messages);
+        addMessage('AI', 'Received an unexpected response format.');
+      }
+
+      if (nextField) {
+        setCurrentField(nextField);
+        setFieldType(fieldType || 'text');
+        setIsOptional(!!isOptional);
+        setFieldOptions(Array.isArray(options) ? options : []);
+        addMessage('AI', `Please provide the ${nextField}${isOptional ? ' (optional)' : ''}:`);
+      } else if (!url) {
+        setCurrentField(null);
+        setShowGenerateButton(true);
+      }
+    };
 
   const handleUserInput = async (e) => {
     e.preventDefault();
@@ -232,7 +239,8 @@ function AICertificateGenerator() {
       }
 
       const result = await response.json();
-      addMessage('AI', 'Certificates generated successfully!', false, true, result.zipUrl);
+      console.log('Full server response:', result);
+      await processAIResponse(result);
     } catch (error) {
       console.error('Error:', error);
       addMessage('AI', `An error occurred: ${error.message}`);
