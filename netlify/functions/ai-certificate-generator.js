@@ -59,18 +59,22 @@ exports.handler = async (event, context) => {
       if (action === 'initialize') {
         // Handle initial AI interaction
         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        const prompt = `I have a CSV file with the following data: ${JSON.stringify(fileData[0])}. What additional information should I collect to generate certificates?`;
+        const prompt = `I have a CSV file with the following data: ${JSON.stringify(fileData[0])}. What additional information should I collect to generate certificates? Please provide a list of fields and their types (text, dropdown, file, or signature).`;
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
+  
+        // Parse the AI response to extract fields and their types
+        const fields = parseAIResponse(text);
   
         return {
             statusCode: 200,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              messages: ['Processing your request...'],
-              nextField: null,
-              fieldType: null
+              messages: [text],
+              nextField: fields.length > 0 ? fields[0].name : null,
+              fieldType: fields.length > 0 ? fields[0].type : null,
+              remainingFields: fields.slice(1)
             })
         };
       }
@@ -89,6 +93,15 @@ exports.handler = async (event, context) => {
         };
       }
     };
+
+function parseAIResponse(text) {
+  // This is a simple parser. You might need to adjust it based on the actual AI output format.
+  const lines = text.split('\n');
+  return lines.map(line => {
+    const [name, type] = line.split(':').map(s => s.trim());
+    return { name, type: type.toLowerCase() };
+  }).filter(field => field.name && field.type);
+}
 
 async function validateApiKey(apiKey) {
   const result = await dynamoDb.query({

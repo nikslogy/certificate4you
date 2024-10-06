@@ -20,6 +20,7 @@ function AICertificateGenerator() {
   const [additionalFields, setAdditionalFields] = useState({});
   const [signatures, setSignatures] = useState([]);
   const sigPads = useRef([]);
+  const [remainingFields, setRemainingFields] = useState([]);
 
   useEffect(() => {
     fetchApiKeys();
@@ -126,7 +127,7 @@ function AICertificateGenerator() {
       return;
     }
   
-    const { messages, nextField, fieldType, options, isOptional, url } = result;
+    const { messages, nextField, fieldType, remainingFields, url } = result;
     
     if (url) {
         // This is the final response with the generated certificates
@@ -154,10 +155,11 @@ function AICertificateGenerator() {
       if (nextField) {
         setCurrentField(nextField);
         setFieldType(fieldType || 'text');
-        setIsOptional(!!isOptional);
-        setFieldOptions(Array.isArray(options) ? options : []);
-        addMessage('AI', `Please provide the ${nextField}${isOptional ? ' (optional)' : ''}:`);
-      } else if (!url) {
+        setIsOptional(false); // You might want to determine this based on the AI response
+        setFieldOptions([]); // You might want to set this for dropdown fields
+        addMessage('AI', `Please provide the ${nextField}:`);
+        setRemainingFields(remainingFields || []);
+      } else {
         setCurrentField(null);
         setShowGenerateButton(true);
       }
