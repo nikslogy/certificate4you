@@ -35,7 +35,10 @@ const templateOptions = [
 
 exports.handler = async (event, context) => {
     if (event.httpMethod !== 'POST') {
-      return { statusCode: 405, body: 'Method Not Allowed' };
+      return { 
+        statusCode: 405, 
+        body: JSON.stringify({ error: 'Method Not Allowed' })
+      };
     }
   
     try {
@@ -45,7 +48,10 @@ exports.handler = async (event, context) => {
       console.log('Validating API key');
       const apiKeyData = await validateApiKey(apiKey);
       if (!apiKeyData) {
-        return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
+        return { 
+          statusCode: 401, 
+          body: JSON.stringify({ error: 'Invalid API key' }) 
+        };
       }
   
       if (action === 'initialize') {
@@ -58,6 +64,7 @@ exports.handler = async (event, context) => {
   
         return {
           statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             messages: [text],
             nextField: 'course', // Example: start by asking for the course name
@@ -68,17 +75,18 @@ exports.handler = async (event, context) => {
   
       // Rest of the certificate generation logic...
     } catch (error) {
-      console.error('Detailed error:', error);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ 
-          error: 'Failed to process request',
-          details: error.message,
-          stack: error.stack
-        })
-      };
-    }
-  };
+        console.error('Detailed error:', error);
+        return {
+          statusCode: 500,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            error: 'Failed to process request',
+            details: error.message,
+            stack: error.stack
+          })
+        };
+      }
+    };
 
 async function validateApiKey(apiKey) {
   const result = await dynamoDb.query({

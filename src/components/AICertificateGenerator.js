@@ -94,12 +94,21 @@ function AICertificateGenerator() {
         }),
       });
   
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server error: ${response.status}`);
+      let result;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        result = await response.json();
+      } else {
+        // If the response is not JSON, get the text content
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error('Received non-JSON response from server');
       }
   
-      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || `Server error: ${response.status}`);
+      }
+  
       console.log('Full server response:', result);
       await processAIResponse(result);
     } catch (error) {
