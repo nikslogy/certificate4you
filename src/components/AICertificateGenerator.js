@@ -122,9 +122,10 @@ function AICertificateGenerator() {
   const handleUserInput = async (e) => {
     e.preventDefault();
     if (userInput || isOptional) {
-      addMessage('User', userInput || 'Skipped (optional)');
+      const inputValue = userInput || (isOptional ? null : '');
+      addMessage('User', inputValue || 'Skipped (optional)');
       setIsLoading(true);
-
+  
       try {
         const response = await fetch('/.netlify/functions/ai-certificate-generator', {
           method: 'POST',
@@ -135,27 +136,27 @@ function AICertificateGenerator() {
             apiKey: selectedApiKey,
             fileData,
             ...additionalFields,
-            [currentField]: userInput,
+            [currentField]: inputValue,
           }),
         });
-
+  
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to process input');
         }
-
+  
         const result = await response.json();
         await processAIResponse(result);
-
+  
         setAdditionalFields(prev => ({
           ...prev,
-          [currentField]: userInput,
+          [currentField]: inputValue,
         }));
       } catch (error) {
         console.error('Error:', error);
         addMessage('AI', `An error occurred: ${error.message}`);
       }
-
+  
       setIsLoading(false);
       setUserInput('');
     }

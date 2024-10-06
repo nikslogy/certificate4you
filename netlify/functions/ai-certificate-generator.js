@@ -81,7 +81,7 @@ exports.handler = async (event, context) => {
             isOptional: false
           })
         };
-      } else if (!additionalFields.additionalInfo) {
+      } else if (additionalFields.additionalInfo === undefined) {
         return {
           statusCode: 200,
           body: JSON.stringify({
@@ -91,7 +91,7 @@ exports.handler = async (event, context) => {
             isOptional: true
           })
         };
-      } else if (!additionalFields.signatures) {
+      } else if (additionalFields.signatures === undefined) {
         return {
           statusCode: 200,
           body: JSON.stringify({
@@ -114,7 +114,7 @@ exports.handler = async (event, context) => {
           additionalFields.issuer,
           additionalFields.additionalInfo || '',
           additionalFields.logo,
-          additionalFields.signatures,
+          additionalFields.signatures || [],
           additionalFields.template || 'modern-minimalist'
         );
 
