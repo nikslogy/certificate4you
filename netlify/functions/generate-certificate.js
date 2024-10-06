@@ -14,27 +14,27 @@ const dynamoDb = DynamoDBDocument.from(new DynamoDB({
 }));
 
 exports.handler = async (event, context) => {
-  // Handle preflight OPTIONS request
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      },
-    };
-  }
-
-  if (event.httpMethod !== 'POST') {
-    return { 
-      statusCode: 405, 
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: 'Method Not Allowed'
-    };
-  }
-
   try {
+    // Handle preflight OPTIONS request
+    if (event.httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        },
+      };
+    }
+
+    if (event.httpMethod !== 'POST') {
+      return { 
+        statusCode: 405, 
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: 'Method Not Allowed'
+      };
+    }
+
     const apiKey = event.headers['x-api-key'];
     if (!apiKey) {
       throw new Error('API key is required');
@@ -56,18 +56,15 @@ exports.handler = async (event, context) => {
 
     return {
       statusCode: 200,
-      headers: { 
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: result.id, url: result.url })
     };
   } catch (error) {
-    console.error('Detailed error:', error);
-    return { 
-      statusCode: error.message === 'Invalid API key' || error.message === 'API key usage limit exceeded' ? 403 : 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: error.message, details: error.stack })
+    console.error('Error generating certificates:', error);
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Failed to generate certificates', details: error.message })
     };
   }
 };

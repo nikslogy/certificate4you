@@ -255,20 +255,24 @@ function AICertificateGenerator() {
           ...additionalFields,
         }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate certificates');
+  
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const result = await response.json();
+        console.log('Full server response:', result);
+        await processAIResponse(result);
+      } else {
+        // If the response is not JSON, get the text content
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error('Received non-JSON response from server');
       }
-
-      const result = await response.json();
-      console.log('Full server response:', result);
-      await processAIResponse(result);
     } catch (error) {
       console.error('Error:', error);
       addMessage('AI', `An error occurred: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleSignatureNameChange = (index, name) => {
