@@ -13,7 +13,8 @@ function AICertificateGenerator() {
   const [logo, setLogo] = useState(null);
   const [remainingUsage, setRemainingUsage] = useState(null);
   const chatRef = useRef(null);
-  const [missingFields, setMissingFields] = useState([]);
+  const [missingRequiredFields, setMissingRequiredFields] = useState([]);
+  const [suggestedOptionalFields, setSuggestedOptionalFields] = useState([]);
   const [fileData, setFileData] = useState(null);
 
   useEffect(() => {
@@ -74,12 +75,7 @@ function AICertificateGenerator() {
       }
 
       const result = await response.json();
-      if (result.missingFields && result.missingFields.length > 0) {
-        setMissingFields(result.missingFields);
-        addMessage('AI', `Please provide the following missing information: ${result.missingFields.join(', ')}`);
-      } else {
-        await processAIResponse(result);
-      }
+      await processAIResponse(result);
     } catch (error) {
       console.error('Error:', error);
       addMessage('AI', `An error occurred: ${error.message}`);
@@ -95,7 +91,7 @@ function AICertificateGenerator() {
     const updatedFileData = fileData.map(item => ({
       ...item,
       ...Object.fromEntries(
-        missingFields.map(field => [field, e.target[field].value])
+        [...missingRequiredFields, ...suggestedOptionalFields].map(field => [field, e.target[field]?.value || ''])
       )
     }));
 
@@ -119,7 +115,8 @@ function AICertificateGenerator() {
 
       const result = await response.json();
       await processAIResponse(result);
-      setMissingFields([]);
+      setMissingRequiredFields([]);
+      setSuggestedOptionalFields([]);
     } catch (error) {
       console.error('Error:', error);
       addMessage('AI', `An error occurred: ${error.message}`);
@@ -154,21 +151,33 @@ function AICertificateGenerator() {
   };
 
   const processAIResponse = async (result) => {
-    const { messages, certificateCount, template, zipUrl, remainingUsage } = result;
+    const { messages, certificateCount, template, zipUrl, remainingUsage, missingRequiredFields, suggestedOptionalFields } = result;
 
     for (const message of messages) {
       addMessage('AI', message);
       await delay(1000);
     }
 
-    setCertificateCount(certificateCount);
-    setTemplate(template);
-    setRemainingUsage(remainingUsage);
+    if (missingRequiredFields && missingRequiredFields.length > 0) {
+      setMissingRequiredFields(missingRequiredFields);
+      addMessage('AI', `Please provide the following required information: ${missingRequiredFields.join(', ')}`);
+    }
 
-    addMessage('AI', `Generated ${certificateCount} certificates using the ${template} template.`);
-    addMessage('AI', `You have ${remainingUsage} certificates left to generate with this API key.`);
-    addMessage('AI', 'All certificates have been generated successfully! You can now download the ZIP file containing all certificates.');
-    addMessage('AI', 'Download ZIP', true, true, zipUrl);
+    if (suggestedOptionalFields && suggestedOptionalFields.length > 0) {
+      setSuggestedOptionalFields(suggestedOptionalFields);
+      addMessage('AI', `You may also provide the following optional information: ${suggestedOptionalFields.join(', ')}`);
+    }
+
+    if (!missingRequiredFields || missingRequiredFields.length === 0) {
+      setCertificateCount(certificateCount);
+      setTemplate(template);
+      setRemainingUsage(remainingUsage);
+
+      addMessage('AI', `Generated ${certificateCount} certificates using the ${template} template.`);
+      addMessage('AI', `You have ${remainingUsage} certificates left to generate with this API key.`);
+      addMessage('AI', 'All certificates have been generated successfully! You can now download the ZIP file containing all certificates.');
+      addMessage('AI', 'Download ZIP', true, true, zipUrl);
+    }
   };
 
   const addMessage = (sender, content, isUserInput = false, isDownloadLink = false, downloadUrl = '') => {
@@ -187,16 +196,22 @@ function AICertificateGenerator() {
   return (
     <div className="ai-certificate-generator">
       <h1>AI Certificate Generator</h1>
-      {missingFields.length > 0 ? (
+      {missingRequiredFields.length > 0 || suggestedOptionalFields.length > 0 ? (
         <form onSubmit={handleMissingFieldSubmit}>
-          {missingFields.map(field => (
+          {missingRequiredFields.map(field => (
             <div key={field} className="form-group">
               <label htmlFor={field}>{field.charAt(0).toUpperCase() + field.slice(1)}:</label>
               <input type="text" id={field} name={field} required />
             </div>
           ))}
+          {suggestedOptionalFields.map(field => (
+            <div key={field} className="form-group">
+              <label htmlFor={field}>{field.charAt(0).toUpperCase() + field.slice(1)} (Optional):</label>
+              <input type="text" id={field} name={field} />
+            </div>
+          ))}
           <button type="submit" disabled={isLoading}>
-            {isLoading ? 'Processing...' : 'Submit Missing Information'}
+            {isLoading ? 'Processing...' : 'Submit Additional Information'}
           </button>
         </form>
       ) : (

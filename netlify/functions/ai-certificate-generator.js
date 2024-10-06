@@ -47,11 +47,13 @@ exports.handler = async (event, context) => {
     ${JSON.stringify(fileData)}
     
     1. How many certificates need to be generated?
-    2. Are there any missing fields that need to be filled?
-    3. Suggest a suitable certificate template based on the data (choose from: classic-elegance, modern-minimalist, vibrant-achievement).
-    4. Are there any patterns or interesting insights in the data?
+    2. List all the fields present in the data.
+    3. Identify any missing required fields (name, course, date, certificateType, issuer).
+    4. Suggest any missing optional fields that might enhance the certificates (additionalInfo, logo, signatures).
+    5. Suggest a suitable certificate template based on the data (choose from: classic-elegance, modern-minimalist, vibrant-achievement).
+    6. Are there any patterns or interesting insights in the data?
     
-    Respond in a conversational manner, as if you're talking to the user.`;
+    Respond in a conversational manner, as if you're talking to the user. Do not ask for information that is already present in the data.`;
 
     const result = await model.generateContent(prompt);
     const aiResponse = result.response.text();
@@ -60,32 +62,36 @@ exports.handler = async (event, context) => {
     const template = extractTemplate(aiResponse);
     const messages = aiResponse.split('\n').filter(msg => msg.trim() !== '');
 
-    // Check for missing fields
-    const missingFields = checkMissingFields(fileData);
-    if (missingFields.length > 0) {
+    // Check for missing required fields
+    const missingRequiredFields = checkMissingRequiredFields(fileData);
+    // Suggest optional fields
+    const suggestedOptionalFields = suggestOptionalFields(fileData);
+
+    if (missingRequiredFields.length > 0) {
       return {
         statusCode: 200,
         body: JSON.stringify({
           messages,
-          missingFields,
+          missingRequiredFields,
+          suggestedOptionalFields,
           certificateCount,
           template,
         })
       };
     }
 
-    // Generate certificates only if all required fields are present
+    // Generate certificates
     const zip = new JSZip();
     for (const data of fileData) {
       const result = await generateCertificate(
         data.name,
-        data.course || data.certificateTitle,
+        data.course,
         data.date,
-        logo,
-        data.certificateType || 'completion',
+        data.certificateType,
         data.issuer,
-        data.additionalInfo,
-        [],
+        data.additionalInfo || '',
+        logo,
+        data.signatures || [],
         template
       );
 
@@ -155,17 +161,30 @@ function extractTemplate(aiResponse) {
   return 'modern-minimalist'; // Default template
 }
 
-function checkMissingFields(fileData) {
-  const requiredFields = ['name', 'course', 'date', 'issuer'];
+function checkMissingRequiredFields(fileData) {
+  const requiredFields = ['name', 'course', 'date', 'certificateType', 'issuer'];
   const missingFields = new Set();
 
   for (const field of requiredFields) {
-    if (!fileData.some(item => item[field] || item[field.toLowerCase()])) {
+    if (!fileData.every(item => item[field])) {
       missingFields.add(field);
     }
   }
 
   return Array.from(missingFields);
+}
+
+function suggestOptionalFields(fileData) {
+  const optionalFields = ['additionalInfo', 'logo', 'signatures'];
+  const suggestedFields = new Set();
+
+  for (const field of optionalFields) {
+    if (!fileData.some(item => item[field])) {
+      suggestedFields.add(field);
+    }
+  }
+
+  return Array.from(suggestedFields);
 }
 
 async function uploadToS3(buffer, key, contentType) {
