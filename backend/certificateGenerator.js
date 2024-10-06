@@ -12,6 +12,8 @@ const s3Client = new S3Client({
   },
 });
 
+const uniqueId = () => uuidv4();
+
 const generateCertificate = async (
   name,
   course,
@@ -23,8 +25,6 @@ const generateCertificate = async (
   signatures,
   template
 ) => {
-  const uniqueId = uuidv4();
-
   const doc = new PDFDocument({
     size: 'A4',
     layout: 'landscape',
@@ -274,6 +274,7 @@ const generateVibrantAchievementTemplate = async (doc, data) => {
 // Helper function to add common elements
 const addCommonElements = (doc, data) => {
   const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
+  const id = uniqueId();
 
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
