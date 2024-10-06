@@ -25,6 +25,14 @@ const dynamoDb = DynamoDBDocument.from(new DynamoDB({
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+const templateOptions = [
+  'Modern Minimalist',
+  'Vibrant Achievement',
+  'Classic Elegance',
+  'Professional Development',
+  'Academic Excellence'
+];
+
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -42,8 +50,10 @@ exports.handler = async (event, context) => {
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
 
-    const requiredFields = ['course', 'issuer', 'certificateType', 'additionalInfo', 'template'];
+    const requiredFields = ['course', 'issuer', 'certificateType', 'template'];
+    const optionalFields = ['additionalInfo', 'logo', 'signatures'];
     const missingFields = requiredFields.filter(field => !additionalFields[field]);
+    const missingOptionalFields = optionalFields.filter(field => !additionalFields[field]);
 
     if (missingFields.length > 0) {
       const nextField = missingFields[0];
@@ -55,10 +65,6 @@ exports.handler = async (event, context) => {
       
       Please provide guidance for the user to fill in the "${nextField}" field. This will be common for all certificates. Be concise and specific.`;
 
-      if (nextField === 'certificateType') {
-        prompt += `\nSuggest 3-5 appropriate certificate types based on the course and data provided. Present these as a comma-separated list.`;
-      }
-
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
@@ -68,9 +74,21 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           messages: [text],
           nextField,
-          fieldType: nextField === 'additionalInfo' ? 'textarea' : 'text',
-          options: nextField === 'certificateType' ? text.split(',').map(t => t.trim()) : [],
-          isOptional: nextField === 'additionalInfo'
+          fieldType: nextField === 'template' ? 'dropdown' : 'text',
+          options: nextField === 'template' ? templateOptions : [],
+          isOptional: false
+        })
+      };
+    } else if (missingOptionalFields.length > 0) {
+      const nextField = missingOptionalFields[0];
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          messages: [`Would you like to add ${nextField}? This is optional.`],
+          nextField,
+          fieldType: nextField === 'signatures' ? 'signature' : (nextField === 'logo' ? 'file' : 'text'),
+          options: [],
+          isOptional: true
         })
       };
     }
@@ -82,7 +100,7 @@ exports.handler = async (event, context) => {
     for (const data of fileData) {
       const uniqueId = uuidv4();
       const result = await generateCertificate(
-        data.name,
+        data['full name'], // Assuming the column name is 'full name'
         additionalFields.course,
         data.date,
         additionalFields.logo,
@@ -94,7 +112,7 @@ exports.handler = async (event, context) => {
       );
 
       const pdfBuffer = await getObjectFromS3(`certificates/${uniqueId}.pdf`);
-      zip.file(`${data.name}_certificate.pdf`, pdfBuffer);
+      zip.file(`${data['full name']}_certificate.pdf`, pdfBuffer);
     }
 
     const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });

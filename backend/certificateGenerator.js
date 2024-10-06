@@ -201,7 +201,8 @@ function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer,
   addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
 }
 
-function addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId) {
+const addCommonElements = (doc, data) => {
+  const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
 
@@ -214,8 +215,8 @@ function addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, 
   }
 
   // Add logo if provided
-  if (logoBuffer) {
-    doc.image(logoBuffer, 700, 50, { width: 100 });
+  if (logo) {
+    doc.image(logo, 700, 50, { width: 100 });
   }
 
   // Add signatures
@@ -224,27 +225,29 @@ function addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, 
   const marginX = 50;
   const marginBottom = 100;
 
-  signatures.forEach((sig, index) => {
-    let x, y;
-    
-    if (signatures.length === 1) {
-      x = (pageWidth - signatureWidth) / 2;
-    } else if (signatures.length === 2) {
-      x = index === 0 ? pageWidth / 4 - signatureWidth / 2 : (3 * pageWidth) / 4 - signatureWidth / 2;
-    } else {
-      x = marginX + (index * (pageWidth - 2 * marginX - signatureWidth)) / 2;
-    }
-    
-    y = pageHeight - marginBottom - signatureHeight;
+  if (signatures && Array.isArray(signatures)) {
+    signatures.forEach((signature, index) => {
+      let x, y;
+      
+      if (signatures.length === 1) {
+        x = (pageWidth - signatureWidth) / 2;
+      } else if (signatures.length === 2) {
+        x = index === 0 ? pageWidth / 4 - signatureWidth / 2 : (3 * pageWidth) / 4 - signatureWidth / 2;
+      } else {
+        x = marginX + (index * (pageWidth - 2 * marginX - signatureWidth)) / 2;
+      }
+      
+      y = pageHeight - marginBottom - signatureHeight;
 
-    if (sig.image) {
-      doc.image(sig.image, x, y, { width: signatureWidth });
-    }
-    doc.font('Text')
-       .fontSize(12)
-       .fillColor('#666')
-       .text(sig.name, x, y + signatureHeight + 10, { width: signatureWidth, align: 'center' });
-  });
+      if (signature.image) {
+        doc.image(signature.image, x, y, { width: signatureWidth });
+      }
+      doc.font('Text')
+         .fontSize(12)
+         .fillColor('#666')
+         .text(signature.name, x, y + signatureHeight + 10, { width: signatureWidth, align: 'center' });
+    });
+  }
 
   // Add issuer
   doc.font('Text')
@@ -257,7 +260,7 @@ function addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, 
      .fontSize(10)
      .fillColor('#999')
      .text(`Certificate ID: ${uniqueId}`, 0, pageHeight - 40, { align: 'center', width: pageWidth, link: 'https://certificate4you.com/#/verify' });
-}
+};
 
 async function uploadToS3(buffer, key, contentType) {
   const command = new PutObjectCommand({

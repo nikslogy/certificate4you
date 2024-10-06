@@ -148,10 +148,12 @@ function AICertificateGenerator() {
         const result = await response.json();
         await processAIResponse(result);
   
-        setAdditionalFields(prev => ({
-          ...prev,
-          [currentField]: inputValue,
-        }));
+        if (inputValue !== null) {
+          setAdditionalFields(prev => ({
+            ...prev,
+            [currentField]: inputValue,
+          }));
+        }
       } catch (error) {
         console.error('Error:', error);
         addMessage('AI', `An error occurred: ${error.message}`);
@@ -334,6 +336,13 @@ function AICertificateGenerator() {
                 <button type="button" onClick={addSignatureField}>Add Signature</button>
               )}
             </div>
+          ) : fieldType === 'file' ? (
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setUserInput(e.target.files[0])}
+              required={!isOptional}
+            />
           ) : (
             <input
               type="text"
@@ -343,7 +352,7 @@ function AICertificateGenerator() {
               required={!isOptional}
             />
           )}
-          <button type="submit">Submit</button>
+          <button type="submit">{isOptional ? 'Skip/Submit' : 'Submit'}</button>
         </form>
       )}
 
