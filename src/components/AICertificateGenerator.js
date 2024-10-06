@@ -98,6 +98,7 @@ function AICertificateGenerator() {
       }
 
       const result = await response.json();
+      console.log('Full server response:', result); // Add this line for debugging
       await processAIResponse(result);
     } catch (error) {
       console.error('Error:', error);
@@ -124,8 +125,12 @@ function AICertificateGenerator() {
     } else if (typeof messages === 'string') {
       addMessage('AI', messages);
       await delay(1000);
+    } else if (messages === undefined) {
+      console.warn('No messages received from the server');
+      addMessage('AI', 'Processing your request...');
     } else {
       console.warn('Unexpected messages format:', messages);
+      addMessage('AI', 'Received an unexpected response format.');
     }
 
     if (nextField) {
