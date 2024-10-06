@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import SignatureCanvas from 'react-signature-canvas';
 import './AICertificateGenerator.css';
 import * as XLSX from 'xlsx';
 
@@ -17,6 +18,8 @@ function AICertificateGenerator() {
   const [showGenerateButton, setShowGenerateButton] = useState(false);
   const [fieldOptions, setFieldOptions] = useState([]);
   const [additionalFields, setAdditionalFields] = useState({});
+  const [signatures, setSignatures] = useState([]);
+  const sigPads = useRef([]);
 
   useEffect(() => {
     fetchApiKeys();
@@ -45,6 +48,22 @@ function AICertificateGenerator() {
 
   const handleFileUpload = (e) => {
     setFile(e.target.files[0]);
+  };
+
+  const readFileData = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet);
+        resolve(json);
+      };
+      reader.onerror = (error) => reject(error);
+      reader.readAsArrayBuffer(file);
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -80,22 +99,6 @@ function AICertificateGenerator() {
     setIsLoading(false);
   };
 
-  const readFileData = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet);
-        resolve(json);
-      };
-      reader.onerror = (error) => reject(error);
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
   const processAIResponse = async (result) => {
     const { messages, nextField, fieldType, options, isOptional } = result;
 
@@ -118,50 +121,52 @@ function AICertificateGenerator() {
 
   const handleUserInput = async (e) => {
     e.preventDefault();
-    addMessage('User', userInput);
-    setIsLoading(true);
-  
-    try {
-      const response = await fetch('/.netlify/functions/ai-certificate-generator', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          apiKey: selectedApiKey,
-          fileData,
-          ...additionalFields,
+    if (userInput || isOptional) {
+      addMessage('User', userInput || 'Skipped (optional)');
+      setIsLoading(true);
+
+      try {
+        const response = await fetch('/.netlify/functions/ai-certificate-generator', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            apiKey: selectedApiKey,
+            fileData,
+            ...additionalFields,
+            [currentField]: userInput,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to process input');
+        }
+
+        const result = await response.json();
+        await processAIResponse(result);
+
+        setAdditionalFields(prev => ({
+          ...prev,
           [currentField]: userInput,
-        }),
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to process input');
+        }));
+      } catch (error) {
+        console.error('Error:', error);
+        addMessage('AI', `An error occurred: ${error.message}`);
       }
-  
-      const result = await response.json();
-      await processAIResponse(result);
-  
-      // Update additionalFields with the new input
-      setAdditionalFields(prev => ({
-        ...prev,
-        [currentField]: userInput
-      }));
-  
-    } catch (error) {
-      console.error('Error:', error);
-      addMessage('AI', `An error occurred: ${error.message}`);
+
+      setIsLoading(false);
+      setUserInput('');
     }
-  
-    setIsLoading(false);
-    setUserInput('');
   };
 
   const addMessage = (sender, content, isUserInput = false, isDownloadLink = false, downloadUrl = '') => {
     setChatMessages(prev => [...prev, { sender, content, isUserInput, isDownloadLink, downloadUrl }]);
     setTimeout(() => {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      if (chatRef.current) {
+        chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      }
     }, 100);
   };
 
@@ -170,7 +175,7 @@ function AICertificateGenerator() {
   const handleGenerateCertificates = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/.netlify/functions/ai-certificate-generator', {
+      const response = await fetch('/.netlify/functions/generate-certificates', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +183,7 @@ function AICertificateGenerator() {
         body: JSON.stringify({
           apiKey: selectedApiKey,
           fileData,
-          generateCertificates: true,
+          ...additionalFields,
         }),
       });
 
@@ -188,13 +193,49 @@ function AICertificateGenerator() {
       }
 
       const result = await response.json();
-      addMessage('AI', `Successfully generated ${result.certificateCount} certificates.`);
-      addMessage('AI', 'Download Certificates', false, true, result.zipUrl);
+      addMessage('AI', 'Certificates generated successfully!', false, true, result.zipUrl);
     } catch (error) {
       console.error('Error:', error);
-      addMessage('AI', `An error occurred while generating certificates: ${error.message}`);
+      addMessage('AI', `An error occurred: ${error.message}`);
     }
     setIsLoading(false);
+  };
+
+  const handleSignatureNameChange = (index, name) => {
+    const newSignatures = [...signatures];
+    newSignatures[index].name = name;
+    setSignatures(newSignatures);
+  };
+
+  const handleSignatureTypeChange = (index, type) => {
+    const newSignatures = [...signatures];
+    newSignatures[index].type = type;
+    newSignatures[index].image = null;
+    setSignatures(newSignatures);
+  };
+
+  const handleSignatureUpload = (index, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const newSignatures = [...signatures];
+        newSignatures[index].image = event.target.result;
+        setSignatures(newSignatures);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const addSignatureField = () => {
+    if (signatures.length < 3) {
+      setSignatures([...signatures, { name: '', image: null, type: 'upload' }]);
+    }
+  };
+
+  const removeSignatureField = (index) => {
+    const newSignatures = signatures.filter((_, i) => i !== index);
+    setSignatures(newSignatures);
   };
 
   return (
@@ -254,13 +295,43 @@ function AICertificateGenerator() {
             </select>
           ) : fieldType === 'signature' ? (
             <div>
-              {/* Add signature upload/draw components */}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setUserInput(e.target.files[0])}
-                required={!isOptional}
-              />
+              {signatures.map((sig, index) => (
+                <div key={index} className="signature-field">
+                  <input
+                    type="text"
+                    placeholder="Signer's Name"
+                    value={sig.name}
+                    onChange={(e) => handleSignatureNameChange(index, e.target.value)}
+                    required={!isOptional}
+                  />
+                  <select
+                    value={sig.type}
+                    onChange={(e) => handleSignatureTypeChange(index, e.target.value)}
+                  >
+                    <option value="upload">Upload Signature</option>
+                    <option value="draw">Draw Signature</option>
+                  </select>
+                  {sig.type === 'upload' ? (
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleSignatureUpload(index, e)}
+                      required={!isOptional}
+                    />
+                  ) : (
+                    <SignatureCanvas
+                      ref={(ref) => sigPads.current[index] = ref}
+                      canvasProps={{ width: 300, height: 150, className: 'signature-canvas' }}
+                    />
+                  )}
+                  {index > 0 && (
+                    <button type="button" onClick={() => removeSignatureField(index)}>Remove</button>
+                  )}
+                </div>
+              ))}
+              {signatures.length < 3 && (
+                <button type="button" onClick={addSignatureField}>Add Signature</button>
+              )}
             </div>
           ) : (
             <input
