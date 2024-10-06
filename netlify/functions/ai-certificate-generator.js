@@ -31,13 +31,16 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    console.log('Received request:', event.body);
     const { apiKey, fileData, logo } = JSON.parse(event.body);
 
+    console.log('Validating API key');
     const apiKeyData = await validateApiKey(apiKey);
     if (!apiKeyData) {
       return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
     }
 
+    console.log('Generating AI content');
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
     const prompt = `Analyze the following certificate data and provide insights:
@@ -114,10 +117,14 @@ exports.handler = async (event, context) => {
       })
     };
   } catch (error) {
-    console.error('Error generating bulk certificates:', error);
+    console.error('Detailed error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ 
+        error: 'Failed to process certificates',
+        details: error.message,
+        stack: error.stack
+      })
     };
   }
 };
@@ -152,11 +159,9 @@ function checkMissingFields(fileData) {
   const requiredFields = ['name', 'course', 'date', 'issuer'];
   const missingFields = new Set();
 
-  for (const data of fileData) {
-    for (const field of requiredFields) {
-      if (!data[field]) {
-        missingFields.add(field);
-      }
+  for (const field of requiredFields) {
+    if (!fileData.some(item => item[field] || item[field.toLowerCase()])) {
+      missingFields.add(field);
     }
   }
 

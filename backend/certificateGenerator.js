@@ -63,8 +63,11 @@ async function generateCertificate(name, course, date, logoBuffer, certificateTy
       case 'vibrant-achievement':
         generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
         break;
-      default:
+      case 'classic-elegance':
         generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+        break;
+      default:
+        generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
     }
 
     doc.end();
@@ -209,6 +212,47 @@ function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer,
      .polygon([0, 0], [40, 0], [40, 80], [20, 100], [0, 80])
      .fill('#ffd700')
      .restore();
+
+  addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
+}
+
+function generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+
+  // Implement the classic elegance template generation here
+  // For now, we'll use a placeholder implementation
+  doc.rect(0, 0, pageWidth, pageHeight).fill('#f9f9f9');
+
+  doc.font('Heading')
+     .fontSize(42)
+     .fillColor('#333333')
+     .text(`Certificate of ${certificateType.charAt(0).toUpperCase() + certificateType.slice(1)}`, 0, 100, { align: 'center' });
+
+  doc.font('SubHeading')
+     .fontSize(24)
+     .fillColor('#555555')
+     .text('This certifies that', 0, 220, { align: 'center' });
+
+  doc.font('Heading')
+     .fontSize(36)
+     .fillColor('#333333')
+     .text(name, 0, 260, { align: 'center' });
+
+  doc.font('SubHeading')
+     .fontSize(24)
+     .fillColor('#555555')
+     .text(`has successfully ${certificateType === 'completion' ? 'completed' : 'participated in'}`, 0, 320, { align: 'center' });
+
+  doc.font('Heading')
+     .fontSize(32)
+     .fillColor('#333333')
+     .text(course, 0, 360, { align: 'center' });
+
+  doc.font('Text')
+     .fontSize(18)
+     .fillColor('#777777')
+     .text(`on ${date}`, 0, 420, { align: 'center' });
 
   addCommonElements(doc, logoBuffer, additionalInfo, signatures, issuer, uniqueId);
 }
