@@ -17,7 +17,7 @@ import MyAccount from './components/MyAccount';
 import Settings from './components/Settings';
 import PublicRoute from './components/PublicRoute';
 import userIcon from './assets/user.png';
-
+import AICertificateGenerator from './components/AICertificateGenerator';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -105,6 +105,7 @@ function App() {
                   <li><NavLink to="/contact" onClick={() => setMenuOpen(false)}>Contact</NavLink></li>
                   <li><NavLink to="/login" onClick={() => setMenuOpen(false)} className="btn btn-login">Login</NavLink></li>
                   <li><NavLink to="/signup" onClick={() => setMenuOpen(false)} className="btn btn-signup">Signup</NavLink></li>
+                  <li><NavLink to="/ai-generate" onClick={() => setMenuOpen(false)} className="btn btn-ai-generate">AI Generate</NavLink></li>
                 </ul>
               </>
             )}
@@ -136,6 +137,7 @@ function App() {
             <Route path="/dashboard" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Dashboard /></ProtectedRoute>} />
             <Route path="/api-key-generator" element={<ProtectedRoute isAuthenticated={isAuthenticated}><ApiKeyGenerator /></ProtectedRoute>} />
             <Route path="/generate" element={<CertificateGenerator />} />
+            <Route path="/ai-generate" element={<AICertificateGenerator />} />
             <Route path="/verify" element={<CertificateVerifier />} />
             <Route path="/account" element={<ProtectedRoute isAuthenticated={isAuthenticated}><MyAccount /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Settings /></ProtectedRoute>} />

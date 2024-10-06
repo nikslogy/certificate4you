@@ -4,10 +4,11 @@
   "private": true,
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.654.0",
-    "@aws-sdk/client-s3": "^3.651.1",
+    "@aws-sdk/client-s3": "^3.665.0",
     "@aws-sdk/client-ses": "^3.654.0",
     "@aws-sdk/lib-dynamodb": "^3.654.0",
-    "@aws-sdk/s3-request-presigner": "^3.651.1",
+    "@aws-sdk/s3-request-presigner": "^3.665.0",
+    "@google/generative-ai": "^0.21.0",
     "@netlify/functions": "^2.8.1",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
@@ -22,6 +23,7 @@
     "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.0",
     "jspdf": "^2.5.1",
+    "jszip": "^3.10.1",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.15",
     "path": "^0.12.7",
@@ -33,7 +35,8 @@
     "react-signature-canvas": "^1.0.6",
     "react-syntax-highlighter": "^15.5.0",
     "uuid": "^10.0.0",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",
