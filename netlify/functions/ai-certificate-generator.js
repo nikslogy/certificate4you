@@ -26,81 +26,81 @@ const dynamoDb = DynamoDBDocument.from(new DynamoDB({
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 exports.handler = async (event, context) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-
-  try {
-    console.log('Received request:', event.body);
-    const { apiKey, fileData, ...additionalFields } = JSON.parse(event.body);
-
-    console.log('Validating API key');
-    const apiKeyData = await validateApiKey(apiKey);
-    if (!apiKeyData) {
-      return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
+    if (event.httpMethod !== 'POST') {
+      return { statusCode: 405, body: 'Method Not Allowed' };
     }
-
-    console.log('Generating AI content');
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-
-    const requiredFields = ['course', 'issuer', 'certificateType'];
-    const missingFields = requiredFields.filter(field => !additionalFields[field]);
-
-    if (missingFields.length > 0) {
-      const nextField = missingFields[0];
-      let prompt = `Based on the following certificate data:
-      ${JSON.stringify(fileData)}
-      
-      Additional information provided:
-      ${JSON.stringify(additionalFields)}
-      
-      Please provide guidance for the user to fill in the "${nextField}" field. Be concise and specific.`;
-
-      if (nextField === 'certificateType') {
-        prompt += `\nProvide 3-5 options for certificate types as a comma-separated list.`;
+  
+    try {
+      console.log('Received request:', event.body);
+      const { apiKey, fileData, ...additionalFields } = JSON.parse(event.body);
+  
+      console.log('Validating API key');
+      const apiKeyData = await validateApiKey(apiKey);
+      if (!apiKeyData) {
+        return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
       }
-
-      const result = await model.generateContent(prompt);
-      const aiResponse = result.response.text();
-
-      let fieldType = 'text';
-      let options = [];
-
-      if (nextField === 'certificateType') {
-        fieldType = 'dropdown';
-        options = aiResponse.split(',').map(option => option.trim());
-      }
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          messages: [aiResponse],
-          nextField,
-          fieldType,
-          options,
-          isOptional: false
-        })
-      };
-    } else if (!additionalFields.additionalInfo) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          messages: ["Would you like to add any additional information to the certificate? This is optional."],
-          nextField: 'additionalInfo',
-          fieldType: 'text',
-          isOptional: true
-        })
-      };
-    } else if (!additionalFields.signatures) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          messages: ["Would you like to add any signatures to the certificate? You can add up to 3 signatures."],
-          nextField: 'signatures',
-          fieldType: 'signature',
-          isOptional: true
-        })
-      };
+  
+      console.log('Processing certificate data');
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+  
+      const requiredFields = ['course', 'issuer', 'certificateType'];
+      const missingFields = requiredFields.filter(field => !additionalFields[field]);
+  
+      if (missingFields.length > 0) {
+        const nextField = missingFields[0];
+        let prompt = `Based on the following certificate data for multiple people:
+        ${JSON.stringify(fileData)}
+        
+        Additional information provided:
+        ${JSON.stringify(additionalFields)}
+        
+        Please provide guidance for the user to fill in the "${nextField}" field. This will be common for all certificates. Be concise and specific.`;
+  
+        if (nextField === 'certificateType') {
+          prompt += `\nProvide 3-5 options for certificate types as a comma-separated list.`;
+        }
+  
+        const result = await model.generateContent(prompt);
+        const aiResponse = result.response.text();
+  
+        let fieldType = 'text';
+        let options = [];
+  
+        if (nextField === 'certificateType') {
+          fieldType = 'dropdown';
+          options = aiResponse.split(',').map(option => option.trim());
+        }
+  
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            messages: [aiResponse],
+            nextField,
+            fieldType,
+            options,
+            isOptional: false
+          })
+        };
+      } else if (!additionalFields.additionalInfo) {
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            messages: ["Would you like to add any additional information to the certificates? This is optional and will be the same for all certificates."],
+            nextField: 'additionalInfo',
+            fieldType: 'text',
+            isOptional: true
+          })
+        };
+      } else if (!additionalFields.signatures) {
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            messages: ["Would you like to add any signatures to the certificates? You can add up to 3 signatures. These will be the same for all certificates."],
+            nextField: 'signatures',
+            fieldType: 'signature',
+            isOptional: true
+          })
+        };
     } else {
       // All required fields are present, generate certificates
       const certificateCount = fileData.length;
