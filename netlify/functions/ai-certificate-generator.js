@@ -37,6 +37,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod !== 'POST') {
       return { 
         statusCode: 405, 
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Method Not Allowed' })
       };
     }
@@ -50,6 +51,7 @@ exports.handler = async (event, context) => {
       if (!apiKeyData) {
         return { 
           statusCode: 401, 
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ error: 'Invalid API key' }) 
         };
       }
@@ -63,13 +65,13 @@ exports.handler = async (event, context) => {
         const text = response.text();
   
         return {
-          statusCode: 200,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [text],
-            nextField: 'course', // Example: start by asking for the course name
-            fieldType: 'text'
-          })
+            statusCode: 200,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: ['Processing your request...'],
+              nextField: null,
+              fieldType: null
+            })
         };
       }
   

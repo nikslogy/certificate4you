@@ -163,60 +163,69 @@ function AICertificateGenerator() {
       }
     };
 
-  const handleUserInput = async (e) => {
-    e.preventDefault();
-    let inputValue = isOptional && !userInput ? null : userInput;
-
-    if (fieldType === 'file' && inputValue instanceof File) {
-      // Convert File to base64
-      inputValue = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(inputValue);
-      });
-    } else if (fieldType === 'signature') {
-      inputValue = signatures;
-    }
-
-    addMessage('User', inputValue ? (fieldType === 'file' ? 'File uploaded' : inputValue) : 'Skipped (optional)');
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/.netlify/functions/ai-certificate-generator', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          apiKey: selectedApiKey,
-          fileData,
-          ...additionalFields,
-          [currentField]: inputValue,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to process input');
-      }
-
-      const result = await response.json();
-      await processAIResponse(result);
-
-      setAdditionalFields(prev => ({
-        ...prev,
-        [currentField]: inputValue,
-      }));
-    } catch (error) {
-      console.error('Error:', error);
-      addMessage('AI', `An error occurred: ${error.message}`);
-    }
-
-    setIsLoading(false);
-    setUserInput('');
-    setSignatures([]);
-  };
+    const handleUserInput = async (e) => {
+        e.preventDefault();
+        let inputValue = isOptional && !userInput ? null : userInput;
+      
+        if (fieldType === 'file' && inputValue instanceof File) {
+          // Convert File to base64
+          inputValue = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(inputValue);
+          });
+        } else if (fieldType === 'signature') {
+          inputValue = signatures;
+        }
+      
+        addMessage('User', inputValue ? (fieldType === 'file' ? 'File uploaded' : inputValue) : 'Skipped (optional)');
+        setIsLoading(true);
+      
+        try {
+          const response = await fetch('/.netlify/functions/ai-certificate-generator', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              apiKey: selectedApiKey,
+              fileData,
+              ...additionalFields,
+              [currentField]: inputValue,
+            }),
+          });
+      
+          let result;
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.indexOf("application/json") !== -1) {
+            result = await response.json();
+          } else {
+            // If the response is not JSON, get the text content
+            const text = await response.text();
+            console.error('Non-JSON response:', text);
+            throw new Error('Received non-JSON response from server');
+          }
+      
+          if (!response.ok) {
+            throw new Error(result.error || `Server error: ${response.status}`);
+          }
+      
+          await processAIResponse(result);
+      
+          setAdditionalFields(prev => ({
+            ...prev,
+            [currentField]: inputValue,
+          }));
+        } catch (error) {
+          console.error('Error:', error);
+          addMessage('AI', `An error occurred: ${error.message}`);
+        } finally {
+          setIsLoading(false);
+          setUserInput('');
+          setSignatures([]);
+        }
+      };
 
   const addMessage = (sender, content, isUserInput = false, isDownloadLink = false, downloadUrl = '') => {
     setChatMessages(prev => [...prev, { sender, content, isUserInput, isDownloadLink, downloadUrl }]);
