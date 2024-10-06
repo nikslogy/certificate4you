@@ -99,23 +99,21 @@ exports.handler = async (event, context) => {
       for (const data of fileData) {
         try {
           const uniqueId = uuidv4();
-          const certificateData = {
-            name: data.name,
-            course: additionalFields.course,
-            date: data.date,
-            logo: additionalFields.logo || null,
-            certificateType: additionalFields.certificateType,
-            issuer: additionalFields.issuer,
-            additionalInfo: additionalFields.additionalInfo || '',
-            signatures: additionalFields.signatures || [],
-            template: additionalFields.template
-          };
-
-          const result = await generateCertificate(certificateData);
+          const result = await generateCertificate(
+            data.name,
+            additionalFields.course,
+            data.date,
+            additionalFields.logo || null,
+            additionalFields.certificateType,
+            additionalFields.issuer,
+            additionalFields.additionalInfo || '',
+            additionalFields.signatures || [],
+            additionalFields.template || 'classic-elegance'  // Provide a default template if not specified
+          );
 
           const pdfBuffer = await getObjectFromS3(`certificates/${uniqueId}.pdf`);
           zip.file(`${data.name}_certificate.pdf`, pdfBuffer);
-      }catch (certError) {
+        }catch (certError) {
         console.error(`Error generating certificate for ${data.name}:`, certError);
         // You might want to add this error to a list of failed certificates
       }

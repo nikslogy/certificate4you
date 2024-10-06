@@ -72,6 +72,10 @@ async function generateCertificate(name, course, date, logoBuffer, certificateTy
 }
 
 function generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
+  if (!certificateType) {
+    certificateType = 'completion'; // Provide a default value
+    console.warn('Certificate type not provided, using default: completion');
+  }
   // Background color
   doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f5f5f5');
 
