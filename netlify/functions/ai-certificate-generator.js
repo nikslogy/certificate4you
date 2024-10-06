@@ -48,101 +48,56 @@ exports.handler = async (event, context) => {
           return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
         }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
+        console.log('Generating certificates');
+        const zip = new JSZip();
 
-    const requiredFields = ['course', 'issuer', 'certificateType', 'template'];
-    const optionalFields = ['additionalInfo', 'logo', 'signatures'];
-    const missingFields = requiredFields.filter(field => !additionalFields[field]);
-    const missingOptionalFields = optionalFields.filter(field => additionalFields[field] === undefined);
+        for (const data of fileData) {
+          try {
+            const certificateData = {
+              name: data.name,
+              date: data.date,
+              course: additionalFields.course,
+              certificateType: additionalFields.certificateType,
+              issuer: additionalFields.issuer,
+              template: additionalFields.template,
+              additionalInfo: additionalFields.additionalInfo || '',
+              logo: additionalFields.logo || null,
+              signatures: additionalFields.signatures || []
+            };
 
-    if (missingFields.length > 0) {
-      const nextField = missingFields[0];
-      let prompt = `Based on the following certificate data for multiple people:
-      ${JSON.stringify(fileData)}
-      
-      Additional information provided:
-      ${JSON.stringify(additionalFields)}
-      
-      Please provide guidance for the user to fill in the "${nextField}" field. This will be common for all certificates. Be concise and specific.`;
+            const uniqueId = uuidv4();
+            const result = await generateCertificate(certificateData);
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+            const pdfBuffer = await getObjectFromS3(`certificates/${uniqueId}.pdf`);
+            zip.file(`${data.name}_certificate.pdf`, pdfBuffer);
+          } catch (certError) {
+            console.error(`Error generating certificate for ${data.name}:`, certError);
+            // You might want to add this error to a list of failed certificates
+          }
+        }
 
+        const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+        const zipKey = `bulk_certificates_${Date.now()}.zip`;
+        await uploadToS3(zipBuffer, zipKey, 'application/zip');
+
+        const downloadUrl = await generatePresignedUrl(zipKey);
+
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ url: downloadUrl })
+        };
+
+    } catch (error) {
+      console.error('Detailed error:', error);
       return {
-        statusCode: 200,
-        body: JSON.stringify({
-          messages: [text],
-          nextField,
-          fieldType: nextField === 'template' ? 'dropdown' : 'text',
-          options: nextField === 'template' ? templateOptions : [],
-          isOptional: false
+        statusCode: 500,
+        body: JSON.stringify({ 
+          error: 'Failed to process certificates',
+          details: error.message,
+          stack: error.stack
         })
       };
-    } else if (missingOptionalFields.length > 0) {
-      const nextField = missingOptionalFields[0];
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          messages: [`Would you like to add ${nextField}? This is optional.`],
-          nextField,
-          fieldType: nextField === 'signatures' ? 'signature' : (nextField === 'logo' ? 'file' : 'text'),
-          options: [],
-          isOptional: true
-        })
-      };
-    } else {
-      // All fields are provided, generate certificates
-      console.log('Generating certificates');
-      const zip = new JSZip();
-
-      for (const data of fileData) {
-        try {
-          const uniqueId = uuidv4();
-          const result = await generateCertificate(
-            data.name,
-            additionalFields.course,
-            data.date,
-            additionalFields.logo || null,
-            additionalFields.certificateType,
-            additionalFields.issuer,
-            additionalFields.additionalInfo || '',
-            additionalFields.signatures || [],
-            additionalFields.template || 'classic-elegance'  // Provide a default template if not specified
-          );
-
-          const pdfBuffer = await getObjectFromS3(`certificates/${uniqueId}.pdf`);
-          zip.file(`${data.name}_certificate.pdf`, pdfBuffer);
-        }catch (certError) {
-        console.error(`Error generating certificate for ${data.name}:`, certError);
-        // You might want to add this error to a list of failed certificates
-      }
     }
-
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-    const zipKey = `bulk_certificates_${Date.now()}.zip`;
-    await uploadToS3(zipBuffer, zipKey, 'application/zip');
-
-      const downloadUrl = await generatePresignedUrl(zipKey);
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ url: downloadUrl })
-      };
-
-    }
-
-  } catch (error) {
-    console.error('Detailed error:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ 
-        error: 'Failed to process certificates',
-        details: error.message,
-        stack: error.stack
-      })
-    };
-  }
 };
 
 async function validateApiKey(apiKey) {
