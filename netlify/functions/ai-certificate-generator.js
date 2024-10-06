@@ -34,19 +34,19 @@ const templateOptions = [
 ];
 
 exports.handler = async (event, context) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-
-  try {
-    console.log('Received request:', event.body);
-    const { apiKey, fileData, ...additionalFields } = JSON.parse(event.body);
-
-    console.log('Validating API key');
-    const apiKeyData = await validateApiKey(apiKey);
-    if (!apiKeyData) {
-      return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
+    if (event.httpMethod !== 'POST') {
+      return { statusCode: 405, body: 'Method Not Allowed' };
     }
+
+    try {
+        console.log('Received request:', event.body);
+        const { apiKey, fileData, ...additionalFields } = JSON.parse(event.body);
+    
+        console.log('Validating API key');
+        const apiKeyData = await validateApiKey(apiKey);
+        if (!apiKeyData) {
+          return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
+        }
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
 
@@ -97,26 +97,33 @@ exports.handler = async (event, context) => {
       const zip = new JSZip();
 
       for (const data of fileData) {
-        const uniqueId = uuidv4();
-        const result = await generateCertificate(
-          data['full name'], // Assuming the column name is 'full name'
-          additionalFields.course,
-          data.date,
-          additionalFields.logo || null,
-          additionalFields.certificateType,
-          additionalFields.issuer,
-          additionalFields.additionalInfo || '',
-          additionalFields.signatures || [],
-          additionalFields.template
-        );
+        try {
+          const uniqueId = uuidv4();
+          const certificateData = {
+            name: data.name,
+            course: additionalFields.course,
+            date: data.date,
+            logo: additionalFields.logo || null,
+            certificateType: additionalFields.certificateType,
+            issuer: additionalFields.issuer,
+            additionalInfo: additionalFields.additionalInfo || '',
+            signatures: additionalFields.signatures || [],
+            template: additionalFields.template
+          };
 
-        const pdfBuffer = await getObjectFromS3(`certificates/${uniqueId}.pdf`);
-        zip.file(`${data['full name']}_certificate.pdf`, pdfBuffer);
+          const result = await generateCertificate(certificateData);
+
+          const pdfBuffer = await getObjectFromS3(`certificates/${uniqueId}.pdf`);
+          zip.file(`${data.name}_certificate.pdf`, pdfBuffer);
+      }catch (certError) {
+        console.error(`Error generating certificate for ${data.name}:`, certError);
+        // You might want to add this error to a list of failed certificates
       }
+    }
 
-      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-      const zipKey = `bulk_certificates_${Date.now()}.zip`;
-      await uploadToS3(zipBuffer, zipKey, 'application/zip');
+    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+    const zipKey = `bulk_certificates_${Date.now()}.zip`;
+    await uploadToS3(zipBuffer, zipKey, 'application/zip');
 
       const downloadUrl = await generatePresignedUrl(zipKey);
 

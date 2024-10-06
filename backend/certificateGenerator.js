@@ -202,7 +202,14 @@ function generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer,
 }
 
 const addCommonElements = (doc, data) => {
+  if (!data) {
+    throw new Error('Certificate data is null or undefined');
+  }
   const { name, course, date, certificateType, issuer, additionalInfo, logo, signatures } = data;
+   // Add error checking for required fields
+   if (!name || !course || !date || !certificateType || !issuer) {
+    throw new Error('Missing required certificate data');
+  }
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
 
