@@ -40,7 +40,7 @@ exports.handler = async (event, context) => {
       return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
 
     const requiredFields = ['course', 'issuer', 'certificateType', 'additionalInfo', 'template'];
     const missingFields = requiredFields.filter(field => !additionalFields[field]);
