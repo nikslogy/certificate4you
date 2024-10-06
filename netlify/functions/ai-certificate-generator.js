@@ -32,7 +32,7 @@ exports.handler = async (event, context) => {
 
   try {
     console.log('Received request:', event.body);
-    const { apiKey, fileData, logo } = JSON.parse(event.body);
+    const { apiKey, fileData, additionalInfo, logo, signatures, template } = JSON.parse(event.body);
 
     console.log('Validating API key');
     const apiKeyData = await validateApiKey(apiKey);
@@ -46,52 +46,36 @@ exports.handler = async (event, context) => {
     const prompt = `Analyze the following certificate data and provide insights:
     ${JSON.stringify(fileData)}
     
+    Additional information provided:
+    ${JSON.stringify(additionalInfo)}
+    
     1. How many certificates need to be generated?
     2. List all the fields present in the data.
-    3. Identify any missing required fields (name, course, date, certificateType, issuer).
-    4. Suggest any missing optional fields that might enhance the certificates (additionalInfo, logo, signatures).
-    5. Suggest a suitable certificate template based on the data (choose from: classic-elegance, modern-minimalist, vibrant-achievement).
+    3. Confirm that all required fields are present (name, course, date, certificateType, issuer).
+    4. Acknowledge the additional information and optional fields provided (additionalInfo, logo, signatures).
+    5. Confirm the selected certificate template: ${template}.
     6. Are there any patterns or interesting insights in the data?
     
-    Respond in a conversational manner, as if you're talking to the user. Do not ask for information that is already present in the data.`;
+    Respond in a conversational manner, as if you're talking to the user.`;
 
     const result = await model.generateContent(prompt);
     const aiResponse = result.response.text();
 
     const certificateCount = fileData.length;
-    const template = extractTemplate(aiResponse);
     const messages = aiResponse.split('\n').filter(msg => msg.trim() !== '');
-
-    // Check for missing required fields
-    const missingRequiredFields = checkMissingRequiredFields(fileData);
-    // Suggest optional fields
-    const suggestedOptionalFields = suggestOptionalFields(fileData);
-
-    if (missingRequiredFields.length > 0) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          messages,
-          missingRequiredFields,
-          suggestedOptionalFields,
-          certificateCount,
-          template,
-        })
-      };
-    }
 
     // Generate certificates
     const zip = new JSZip();
     for (const data of fileData) {
       const result = await generateCertificate(
         data.name,
-        data.course,
+        additionalInfo.course,
         data.date,
-        data.certificateType,
-        data.issuer,
-        data.additionalInfo || '',
+        'completion', // You might want to make this configurable
+        additionalInfo.issuer,
+        additionalInfo.additionalInfo || '',
         logo,
-        data.signatures || [],
+        signatures,
         template
       );
 
@@ -149,42 +133,6 @@ async function validateApiKey(apiKey) {
     return null;
   }
   return result.Items[0];
-}
-
-function extractTemplate(aiResponse) {
-  const templates = ['classic-elegance', 'modern-minimalist', 'vibrant-achievement'];
-  for (const template of templates) {
-    if (aiResponse.toLowerCase().includes(template)) {
-      return template;
-    }
-  }
-  return 'modern-minimalist'; // Default template
-}
-
-function checkMissingRequiredFields(fileData) {
-  const requiredFields = ['name', 'course', 'date', 'certificateType', 'issuer'];
-  const missingFields = new Set();
-
-  for (const field of requiredFields) {
-    if (!fileData.every(item => item[field])) {
-      missingFields.add(field);
-    }
-  }
-
-  return Array.from(missingFields);
-}
-
-function suggestOptionalFields(fileData) {
-  const optionalFields = ['additionalInfo', 'logo', 'signatures'];
-  const suggestedFields = new Set();
-
-  for (const field of optionalFields) {
-    if (!fileData.some(item => item[field])) {
-      suggestedFields.add(field);
-    }
-  }
-
-  return Array.from(suggestedFields);
 }
 
 async function uploadToS3(buffer, key, contentType) {
