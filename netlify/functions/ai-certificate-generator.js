@@ -37,68 +37,48 @@ exports.handler = async (event, context) => {
     if (event.httpMethod !== 'POST') {
       return { statusCode: 405, body: 'Method Not Allowed' };
     }
-
+  
     try {
-        console.log('Received request:', event.body);
-        const { apiKey, fileData, ...additionalFields } = JSON.parse(event.body);
-    
-        console.log('Validating API key');
-        const apiKeyData = await validateApiKey(apiKey);
-        if (!apiKeyData) {
-          return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
-        }
-
-        console.log('Generating certificates');
-        const zip = new JSZip();
-
-        for (const data of fileData) {
-          try {
-            const certificateData = {
-              name: data.name,
-              date: data.date,
-              course: additionalFields.course,
-              certificateType: additionalFields.certificateType,
-              issuer: additionalFields.issuer,
-              template: additionalFields.template,
-              additionalInfo: additionalFields.additionalInfo || '',
-              logo: additionalFields.logo || null,
-              signatures: additionalFields.signatures || []
-            };
-
-            const uniqueId = uuidv4();
-            const result = await generateCertificate(certificateData);
-
-            const pdfBuffer = await getObjectFromS3(`certificates/${uniqueId}.pdf`);
-            zip.file(`${data.name}_certificate.pdf`, pdfBuffer);
-          } catch (certError) {
-            console.error(`Error generating certificate for ${data.name}:`, certError);
-            // You might want to add this error to a list of failed certificates
-          }
-        }
-
-        const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-        const zipKey = `bulk_certificates_${Date.now()}.zip`;
-        await uploadToS3(zipBuffer, zipKey, 'application/zip');
-
-        const downloadUrl = await generatePresignedUrl(zipKey);
-
+      console.log('Received request:', event.body);
+      const { apiKey, fileData, action, ...additionalFields } = JSON.parse(event.body);
+  
+      console.log('Validating API key');
+      const apiKeyData = await validateApiKey(apiKey);
+      if (!apiKeyData) {
+        return { statusCode: 401, body: JSON.stringify({ error: 'Invalid API key' }) };
+      }
+  
+      if (action === 'initialize') {
+        // Handle initial AI interaction
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const prompt = `I have a CSV file with the following data: ${JSON.stringify(fileData[0])}. What additional information should I collect to generate certificates?`;
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+  
         return {
           statusCode: 200,
-          body: JSON.stringify({ url: downloadUrl })
+          body: JSON.stringify({
+            messages: [text],
+            nextField: 'course', // Example: start by asking for the course name
+            fieldType: 'text'
+          })
         };
-
+      }
+  
+      // Rest of the certificate generation logic...
     } catch (error) {
       console.error('Detailed error:', error);
       return {
         statusCode: 500,
         body: JSON.stringify({ 
-          error: 'Failed to process certificates',
+          error: 'Failed to process request',
           details: error.message,
           stack: error.stack
         })
       };
     }
-};
+  };
 
 async function validateApiKey(apiKey) {
   const result = await dynamoDb.query({

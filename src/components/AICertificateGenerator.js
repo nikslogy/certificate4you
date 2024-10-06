@@ -73,14 +73,15 @@ function AICertificateGenerator() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
+  
     try {
       const data = await readFileData(file);
       if (!Array.isArray(data) || data.length === 0) {
         throw new Error('Invalid or empty file data');
       }
       setFileData(data);
-
+  
+      // Initial AI interaction
       const response = await fetch('/.netlify/functions/ai-certificate-generator', {
         method: 'POST',
         headers: {
@@ -89,16 +90,17 @@ function AICertificateGenerator() {
         body: JSON.stringify({
           apiKey: selectedApiKey,
           fileData: data,
+          action: 'initialize' // Add this to indicate it's the initial request
         }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `Server error: ${response.status}`);
       }
-
+  
       const result = await response.json();
-      console.log('Full server response:', result); // Add this line for debugging
+      console.log('Full server response:', result);
       await processAIResponse(result);
     } catch (error) {
       console.error('Error:', error);
