@@ -107,7 +107,7 @@ function App() {
                   <li><NavLink to="/contact" onClick={() => setMenuOpen(false)}>Contact</NavLink></li>
                   <li><NavLink to="/login" onClick={() => setMenuOpen(false)} className="btn btn-login">Login</NavLink></li>
                   <li><NavLink to="/signup" onClick={() => setMenuOpen(false)} className="btn btn-signup">Signup</NavLink></li>
-                  <li><NavLink to="/ai-generate" onClick={() => setMenuOpen(false)} className="btn btn-ai-generate">AI Generate</NavLink></li>
+                  <li><NavLink to="/ai-generate" onClick={() => setMenuOpen(false)} className="btn btn-ai-generate">✨AI Generate</NavLink></li>
                 </ul>
               </>
             )}

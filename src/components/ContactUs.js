@@ -5,7 +5,7 @@ function ContactUs() {
   return (
     <div className="contact-us">
       <h1>Contact Us</h1>
-      <p>For any inquiries, support, or bug reports, please email us at <a href="mailto:nikitpotdar@gmail.com">nikitpotdar@gmail.com</a> or fill out the form below:</p>
+      <p>For any inquiries, support, or bug reports, please email me at <a href="mailto:nikitpotdar@gmail.com">nikitpotdar@gmail.com</a> or fill out the form below:</p>
       <form name="contact" method="POST" data-netlify="true" data-netlify-honeypot="bot-field">
   <input type="hidden" name="form-name" value="contact" />
   <div hidden>

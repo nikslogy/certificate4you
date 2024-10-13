@@ -293,3 +293,25 @@ body {
     max-width: 300px;
   }
 }
+
+.btn-ai-generate{
+  animation: aiTextAnimation 3s infinite;
+}
+
+@keyframes aiTextAnimation {
+  0% {
+    color: var(--primary-color);
+  }
+  25% {
+    color: #ff8c00; /* Dark Orange */
+  }
+  50% {
+    color: var(--secondary-color);
+  }
+  75% {
+    color: #32cd32; /* Lime Green */
+  }
+  100% {
+    color: var(--primary-color);
+}
+}

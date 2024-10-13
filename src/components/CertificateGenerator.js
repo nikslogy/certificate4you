@@ -360,6 +360,7 @@ function CertificateGenerator() {
             </div>
           ))}
         </div>
+        <p style={{color: 'green'}}>(Note: Modern Minimalist and Vibrant Achievement templates are currently under development.)</p>
       </div>
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Generating...' : 'Generate Certificate'}
