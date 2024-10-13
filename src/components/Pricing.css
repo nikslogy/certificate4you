@@ -1,51 +1,129 @@
 .pricing-container {
   text-align: center;
-  padding: 50px;
+  padding: 50px 20px;
+  background-color: #f8f9fa;
 }
 
 .pricing-title {
-  font-size: 2em;
-  margin-bottom: 20px;
+  font-size: 2.5em;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.pricing-subtitle {
+  font-size: 1.2em;
+  color: #666;
+  margin-bottom: 40px;
 }
 
 .pricing-plans-container {
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 30px;
 }
 
 .pricing-plan-card {
-  width: 30%;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-  margin-bottom: 20px;
+  width: 300px;
+  padding: 30px;
+  border-radius: 10px;
+  background-color: #fff;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.pricing-plan-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.pricing-plan-card.popular {
+  border: 2px solid #4CAF50;
+}
+
+.popular-badge {
+  position: absolute;
+  top: 20px;
+  right: -40px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 5px 30px;
+  transform: rotate(45deg);
+  font-size: 0.8em;
+  font-weight: bold;
 }
 
 .pricing-plan-title {
-  font-size: 1.5em;
+  font-size: 1.8em;
   margin-bottom: 10px;
+  color: #333;
 }
 
 .pricing-plan-description {
-  margin-bottom: 10px;
+  color: #666;
+  margin-bottom: 20px;
 }
 
 .pricing-plan-price {
-  font-size: 1.2em;
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  color: #4CAF50;
+}
+
+.pricing-plan-price .price {
+  font-weight: bold;
+}
+
+.pricing-plan-price .period {
+  font-size: 0.4em;
+  color: #666;
+}
+
+.pricing-plan-features {
+  list-style-type: none;
+  padding: 0;
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.pricing-plan-features li {
   margin-bottom: 10px;
+  color: #333;
+}
+
+.feature-icon {
+  color: #4CAF50;
+  margin-right: 10px;
 }
 
 .pricing-plan-button {
   background-color: #4CAF50;
   color: white;
-  padding: 10px 20px;
+  padding: 12px 24px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s;
+  font-size: 1em;
+  font-weight: bold;
+  text-transform: uppercase;
 }
 
 .pricing-plan-button:hover {
   background-color: #45a049;
+}
+
+@media (max-width: 768px) {
+  .pricing-plans-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pricing-plan-card {
+    width: 100%;
+    max-width: 350px;
+    margin-bottom: 30px;
+  }
 }
