@@ -145,8 +145,8 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
   };
 
   return (
-    <div className="ai-certificate-generator">
-      <div className="ai-header">
+    <div className="ai-cert-gen-container">
+      <div className="ai-cert-header">
         <h1>AI Certificate Generator</h1>
         <p>Create professional certificates with the help of AI</p>
       </div>
@@ -155,7 +155,7 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
         <select 
           value={selectedApiKey} 
           onChange={(e) => setSelectedApiKey(e.target.value)}
-          className="api-key-select"
+          className="api-key-dropdown"
         >
           <option value="">Select your API key</option>
           {userApiKeys.map(key => (
@@ -168,25 +168,25 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
           value={selectedApiKey} 
           onChange={(e) => setSelectedApiKey(e.target.value)}
           placeholder="Enter your API key"
-          className="api-key-input"
+          className="api-key-text-input"
         />
       )}
 
-      <button onClick={initializeChat} disabled={!selectedApiKey} className="start-button">
+      <button onClick={initializeChat} disabled={!selectedApiKey} className="init-chat-btn">
         Start AI-Powered Certificate Generation
       </button>
 
-      <div className="chat-container" ref={chatContainerRef}>
+      <div className="chat-history-container" ref={chatContainerRef}>
         {chatHistory.map((message, index) => (
-          <div key={index} className={`message ${message.type}`}>
-            {message.type === 'ai' && <div className="ai-avatar"></div>}
-            <div className="message-content">{message.content}</div>
+          <div key={index} className={`chat-message ${message.type}`}>
+            {message.type === 'ai' && <div className="ai-avatar-icon"></div>}
+            <div className="chat-message-text">{message.content}</div>
           </div>
         ))}
-        {isLoading && <div className="loading-animation"></div>}
+        {isLoading && <div className="loading-spinner"></div>}
       </div>
 
-      <div className="user-input">
+      <div className="user-input-area">
         <input
           type="text"
           value={userInput}
@@ -196,35 +196,35 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
         <button onClick={handleUserInput}>Send</button>
       </div>
 
-      <form onSubmit={handleSubmit} className="certificate-form">
-        <div className="form-group">
+      <form onSubmit={handleSubmit} className="cert-generation-form">
+        <div className="form-input-group">
           <label htmlFor="logo-upload">Upload Logo</label>
           <input id="logo-upload" type="file" onChange={handleLogoUpload} accept="image/*" />
         </div>
         
-        <div className="form-group">
+        <div className="form-input-group">
           <label>Signatures</label>
           {[0, 1, 2].map((index) => (
             <SignatureCanvas
               key={index}
               ref={(ref) => sigPads.current[index] = ref}
               onEnd={() => handleSignatureChange(index, sigPads.current[index].toDataURL())}
-              canvasProps={{width: 300, height: 150, className: 'signature-canvas'}}
+              canvasProps={{width: 300, height: 150, className: 'signature-pad'}}
             />
           ))}
         </div>
 
-        <button type="submit" disabled={isLoading} className="generate-button">
+        <button type="submit" disabled={isLoading} className="submit-cert-btn">
           Generate Certificate
         </button>
       </form>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-notification">{error}</div>}
 
       {generatedCertificateUrl && (
-        <div className="generated-certificate">
+        <div className="cert-success-message">
           <h3>Your AI-Generated Certificate is Ready!</h3>
-          <a href={generatedCertificateUrl} target="_blank" rel="noopener noreferrer" className="view-certificate-button">
+          <a href={generatedCertificateUrl} target="_blank" rel="noopener noreferrer" className="cert-view-link">
             View Certificate
           </a>
         </div>

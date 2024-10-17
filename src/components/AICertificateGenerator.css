@@ -1,4 +1,4 @@
-.ai-certificate-generator {
+.ai-cert-gen-container {
     max-width: 800px;
     margin: 0 auto;
     padding: 20px;
@@ -8,24 +8,24 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
   
-  .ai-header {
+  .ai-cert-header {
     text-align: center;
     margin-bottom: 20px;
   }
   
-  .ai-header h1 {
+  .ai-cert-header h1 {
     color: #2c3e50;
     font-size: 2.5em;
     margin-bottom: 10px;
   }
   
-  .ai-header p {
+  .ai-cert-header p {
     color: #34495e;
     font-size: 1.2em;
   }
   
-  .api-key-select,
-  .api-key-input {
+  .api-key-dropdown,
+  .api-key-text-input {
     width: 100%;
     padding: 12px;
     font-size: 16px;
@@ -37,15 +37,15 @@
     transition: all 0.3s ease;
   }
   
-  .api-key-select:focus,
-  .api-key-input:focus {
+  .api-key-dropdown:focus,
+  .api-key-text-input:focus {
     outline: none;
     border-color: #2980b9;
     box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
   }
   
-  .start-button,
-  .generate-button {
+  .init-chat-btn,
+  .submit-cert-btn {
     display: block;
     width: 100%;
     padding: 12px;
@@ -58,12 +58,12 @@
     transition: background-color 0.3s ease;
   }
   
-  .start-button:hover,
-  .generate-button:hover {
+  .init-chat-btn:hover,
+  .submit-cert-btn:hover {
     background-color: #2980b9;
   }
   
-  .chat-container {
+  .chat-history-container {
     height: 400px;
     overflow-y: auto;
     border: 2px solid #3498db;
@@ -73,17 +73,17 @@
     background-color: #fff;
   }
   
-  .message {
+  .chat-message {
     display: flex;
     margin-bottom: 15px;
     align-items: flex-start;
   }
   
-  .message.user {
+  .chat-message.user {
     justify-content: flex-end;
   }
   
-  .message-content {
+  .chat-message-text {
     max-width: 80%;
     padding: 10px 15px;
     border-radius: 18px;
@@ -91,17 +91,17 @@
     line-height: 1.4;
   }
   
-  .message.ai .message-content {
+  .chat-message.ai .chat-message-text {
     background-color: #e8f5fe;
     color: #2c3e50;
   }
   
-  .message.user .message-content {
+  .chat-message.user .chat-message-text {
     background-color: #3498db;
     color: white;
   }
   
-  .ai-avatar {
+  .ai-avatar-icon {
     width: 30px;
     height: 30px;
     background-color: #3498db;
@@ -109,12 +109,12 @@
     margin-right: 10px;
   }
   
-  .user-input {
+  .user-input-area {
     display: flex;
     margin-bottom: 20px;
   }
   
-  .user-input input {
+  .user-input-area input {
     flex-grow: 1;
     padding: 12px;
     font-size: 16px;
@@ -123,7 +123,7 @@
     border-radius: 6px 0 0 6px;
   }
   
-  .user-input button {
+  .user-input-area button {
     padding: 12px 20px;
     font-size: 16px;
     background-color: #3498db;
@@ -134,11 +134,11 @@
     transition: background-color 0.3s ease;
   }
   
-  .user-input button:hover {
+  .user-input-area button:hover {
     background-color: #2980b9;
   }
   
-  .loading-animation {
+  .loading-spinner {
     width: 50px;
     height: 50px;
     border: 3px solid #ecf0f1;
@@ -153,34 +153,26 @@
     100% { transform: rotate(360deg); }
   }
   
-  .certificate-form {
+  .cert-generation-form {
     background-color: white;
     padding: 20px;
     border-radius: 6px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
-  .form-group {
+  .form-input-group {
     margin-bottom: 20px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
   }
   
-  .form-group.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  
-  .form-group label {
+  .form-input-group label {
     display: block;
     margin-bottom: 5px;
     color: #2c3e50;
     font-weight: bold;
   }
   
-  .form-group input,
-  .form-group select {
+  .form-input-group input,
+  .form-input-group select {
     width: 100%;
     padding: 10px;
     font-size: 16px;
@@ -191,26 +183,26 @@
     transition: all 0.3s ease;
   }
   
-  .form-group input:focus,
-  .form-group select:focus {
+  .form-input-group input:focus,
+  .form-input-group select:focus {
     outline: none;
     border-color: #2980b9;
     box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
   }
   
-  .signature-canvas {
+  .signature-pad {
     border: 2px solid #3498db;
     border-radius: 6px;
     margin-top: 10px;
   }
   
-  .error-message {
+  .error-notification {
     color: #e74c3c;
     margin-top: 10px;
     font-weight: bold;
   }
   
-  .generated-certificate {
+  .cert-success-message {
     text-align: center;
     margin-top: 20px;
     padding: 20px;
@@ -219,7 +211,7 @@
     color: white;
   }
   
-  .view-certificate-button {
+  .cert-view-link {
     display: inline-block;
     padding: 12px 24px;
     background-color: white;
@@ -230,7 +222,7 @@
     transition: all 0.3s ease;
   }
   
-  .view-certificate-button:hover {
+  .cert-view-link:hover {
     background-color: #f0f0f0;
     transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
