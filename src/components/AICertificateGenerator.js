@@ -6,15 +6,8 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
   const [selectedApiKey, setSelectedApiKey] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [userInput, setUserInput] = useState('');
-  const [formData, setFormData] = useState({
-    name: '',
-    course: '',
-    date: '',
-    certificateType: 'completion',
-    issuer: '',
-    additionalInfo: '',
-    template: 'classic-elegance',
-  });
+  const [formData, setFormData] = useState({});
+  const [currentField, setCurrentField] = useState(null);
   const [logo, setLogo] = useState(null);
   const [signatures, setSignatures] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,6 +24,7 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
 
   const initializeChat = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch('/.netlify/functions/generate-certificate', {
         method: 'POST',
@@ -41,13 +35,14 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
         body: JSON.stringify({ action: 'initialize' }),
       });
       if (!response.ok) {
-        throw new Error('Failed to initialize chat');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      await response.json();
-      setChatHistory([{ type: 'ai', content: 'Welcome! I\'m your AI assistant for certificate generation. What type of certificate would you like to create?' }]);
+      const data = await response.json();
+      setChatHistory([{ type: 'ai', content: data.message }]);
+      setCurrentField(data.nextField);
       setIsLoading(false);
     } catch (error) {
-      setError("Failed to initialize AI. Please check your API key and try again.");
+      setError(`Failed to initialize AI: ${error.message}. Please check your API key and try again.`);
       setIsLoading(false);
     }
   };
@@ -58,6 +53,7 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
     setChatHistory(prev => [...prev, { type: 'user', content: userInput }]);
     setUserInput('');
     setIsLoading(true);
+    setError(null);
 
     try {
       const response = await fetch('/.netlify/functions/generate-certificate', {
@@ -69,20 +65,22 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
         body: JSON.stringify({ 
           action: 'chat', 
           message: userInput,
-          formData: formData
+          formData: formData,
+          currentField: currentField
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get AI response');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
       setChatHistory(prev => [...prev, { type: 'ai', content: data.message }]);
       updateFormData(data.formData);
+      setCurrentField(data.nextField);
       setIsLoading(false);
     } catch (error) {
-      setError("Failed to get AI response. Please try again.");
+      setError(`Failed to get AI response: ${error.message}. Please try again.`);
       setIsLoading(false);
     }
   };
@@ -110,19 +108,19 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
           action: 'generate',
           formData: formData,
           logo: logo,
-          signatures: signatures,
+          signatures: signatures
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate certificate');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      setGeneratedCertificateUrl(data.url);
+      setGeneratedCertificateUrl(data.certificateUrl);
+      setIsLoading(false);
     } catch (error) {
-      setError(error.message);
-    } finally {
+      setError(`Failed to generate certificate: ${error.message}. Please try again.`);
       setIsLoading(false);
     }
   };
@@ -142,6 +140,45 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
     const newSignatures = [...signatures];
     newSignatures[index] = signatureData.split(',')[1];
     setSignatures(newSignatures);
+  };
+
+  const renderCurrentField = () => {
+    if (!currentField) return null;
+
+    switch (currentField.type) {
+      case 'text':
+        return (
+          <div className="form-input-group animate-field">
+            <label htmlFor={currentField.name}>{currentField.name}</label>
+            <input
+              type="text"
+              id={currentField.name}
+              value={formData[currentField.name] || ''}
+              onChange={(e) => updateFormData({ [currentField.name]: e.target.value })}
+              required={!currentField.optional}
+            />
+          </div>
+        );
+      case 'dropdown':
+        return (
+          <div className="form-input-group animate-field">
+            <label htmlFor={currentField.name}>{currentField.name}</label>
+            <select
+              id={currentField.name}
+              value={formData[currentField.name] || ''}
+              onChange={(e) => updateFormData({ [currentField.name]: e.target.value })}
+              required={!currentField.optional}
+            >
+              <option value="">Select an option</option>
+              {currentField.options.map((option, index) => (
+                <option key={index} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -197,6 +234,8 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
       </div>
 
       <form onSubmit={handleSubmit} className="cert-generation-form">
+        {renderCurrentField()}
+
         <div className="form-input-group">
           <label htmlFor="logo-upload">Upload Logo</label>
           <input id="logo-upload" type="file" onChange={handleLogoUpload} accept="image/*" />
