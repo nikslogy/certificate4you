@@ -47,14 +47,16 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
     }
   };
 
+
+
   const handleUserInput = async () => {
     if (!userInput.trim()) return;
-
+  
     setChatHistory(prev => [...prev, { type: 'user', content: userInput }]);
     setUserInput('');
     setIsLoading(true);
     setError(null);
-
+  
     try {
       const response = await fetch('/.netlify/functions/generate-certificate', {
         method: 'POST',
@@ -69,11 +71,11 @@ function AICertificateGenerator({ isLoggedIn, userApiKeys }) {
           currentField: currentField
         }),
       });
-
+  
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
       const data = await response.json();
       setChatHistory(prev => [...prev, { type: 'ai', content: data.message }]);
       updateFormData(data.formData);
