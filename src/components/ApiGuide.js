@@ -6,7 +6,7 @@ import { solarizedlight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 function ApiGuide() {
   const curlExample = `curl -X POST \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
     "name": "John Doe",
     "course": "Advanced Web Development",
@@ -30,83 +30,83 @@ function ApiGuide() {
   https://certificate4you.com/.netlify/functions/generate-certificate`;
 
   const javascriptExample = `const certificateData = {
-  name: 'John Doe',
-  course: 'Advanced Web Development',
-  date: '2023-04-15',
-  certificateType: 'completion',
-  issuer: 'Tech Academy',
-  additionalInfo: 'Completed with distinction',
-  logo: 'base64EncodedLogoString',
-  signatures: [
-    {
-      name: 'John Smith',
-      image: 'base64EncodedSignatureString'
+    name: 'John Doe',
+    course: 'Advanced Web Development',
+    date: '2023-04-15',
+    certificateType: 'completion',
+    issuer: 'Tech Academy',
+    additionalInfo: 'Completed with distinction',
+    logo: 'base64EncodedLogoString',
+    signatures: [
+      {
+        name: 'John Smith',
+        image: 'base64EncodedSignatureString'
+      },
+      {
+        name: 'Jane Doe',
+        image: 'base64EncodedSignatureString'
+      }
+    ],
+    template: 'modern-minimalist'
+  };
+  
+  fetch('https://certificate4you.com/.netlify/functions/generate-certificate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': 'YOUR_API_KEY'
     },
-    {
-      name: 'Jane Doe',
-      image: 'base64EncodedSignatureString'
+    body: JSON.stringify(certificateData)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.url) {
+      console.log('Certificate URL:', data.url);
+      console.log('Certificate ID:', data.id);
+    } else {
+      console.error('Error:', data.error);
     }
-  ],
-  template: 'modern-minimalist'
-};
-
-fetch('https://certificate4you.com/.netlify/functions/generate-certificate', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_API_KEY'
-  },
-  body: JSON.stringify(certificateData)
-})
-.then(response => response.json())
-.then(data => {
-  if (data.url) {
-    console.log('Certificate URL:', data.url);
-    console.log('Certificate ID:', data.id);
-  } else {
-    console.error('Error:', data.error);
-  }
-})
-.catch(error => console.error('Error:', error));`;
+  })
+  .catch(error => console.error('Error:', error));`;
 
   const pythonExample = `import requests
-import json
-
-url = 'https://certificate4you.com/.netlify/functions/generate-certificate'
-headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_API_KEY'
-}
-data = {
-    'name': 'John Doe',
-    'course': 'Advanced Web Development',
-    'date': '2023-04-15',
-    'certificateType': 'completion',
-    'issuer': 'Tech Academy',
-    'additionalInfo': 'Completed with distinction',
-    'logo': 'base64EncodedLogoString',
-    'signatures': [
-        {
-            'name': 'John Smith',
-            'image': 'base64EncodedSignatureString'
-        },
-        {
-            'name': 'Jane Doe',
-            'image': 'base64EncodedSignatureString'
-        }
-    ],
-    'template': 'modern-minimalist'
-}
-
-response = requests.post(url, headers=headers, json=data)
-
-if response.status_code == 200:
-    result = response.json()
-    print(f"Certificate URL: {result['url']}")
-    print(f"Certificate ID: {result['id']}")
-else:
-    print(f"Error: {response.status_code}")
-    print(response.text)`;
+  import json
+  
+  url = 'https://certificate4you.com/.netlify/functions/generate-certificate'
+  headers = {
+      'Content-Type': 'application/json',
+      'X-API-Key': 'YOUR_API_KEY'
+  }
+  data = {
+      'name': 'John Doe',
+      'course': 'Advanced Web Development',
+      'date': '2023-04-15',
+      'certificateType': 'completion',
+      'issuer': 'Tech Academy',
+      'additionalInfo': 'Completed with distinction',
+      'logo': 'base64EncodedLogoString',
+      'signatures': [
+          {
+              'name': 'John Smith',
+              'image': 'base64EncodedSignatureString'
+          },
+          {
+              'name': 'Jane Doe',
+              'image': 'base64EncodedSignatureString'
+          }
+      ],
+      'template': 'modern-minimalist'
+  }
+  
+  response = requests.post(url, headers=headers, json=data)
+  
+  if response.status_code == 200:
+      result = response.json()
+      print(f"Certificate URL: {result['url']}")
+      print(f"Certificate ID: {result['id']}")
+  else:
+      print(f"Error: {response.status_code}")
+      print(response.text)`;
 
   return (
     <div className="api-guide">
@@ -119,10 +119,10 @@ else:
 
       <section className="authentication">
         <h2>Authentication</h2>
-        <p>To use this API, you need to include your API key in the Authorization header of your request:</p>
+        <p>To use this API, you need to include your API key in the X-API-Key header of your request:</p>
         <div className="code-block">
           <SyntaxHighlighter language="http" style={solarizedlight}>
-            Authorization: Bearer YOUR_API_KEY
+            X-API-Key: YOUR_API_KEY
           </SyntaxHighlighter>
         </div>
       </section>
@@ -141,7 +141,7 @@ else:
         <div className="code-block">
           <SyntaxHighlighter language="http" style={solarizedlight}>
             {`Content-Type: application/json
-Authorization: Bearer YOUR_API_KEY`}
+X-API-Key: YOUR_API_KEY`}
           </SyntaxHighlighter>
         </div>
       </section>
