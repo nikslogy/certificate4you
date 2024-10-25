@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
-const { DynamoDB } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocument } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient } = require("@aws-sdk/lib-dynamodb");
 
 const s3 = new AWS.S3({
   accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
@@ -8,13 +8,15 @@ const s3 = new AWS.S3({
   region: process.env.MYCERT_AWS_REGION
 });
 
-const dynamoDb = DynamoDBDocument.from(new DynamoDB({
+const client = new DynamoDBClient({
   region: process.env.MYCERT_AWS_REGION,
   credentials: {
     accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.MYCERT_AWS_SECRET_ACCESS_KEY,
   },
-}));
+});
+
+const dynamoDb = DynamoDBDocumentClient.from(client);
 
 module.exports = {
   s3,
