@@ -11,6 +11,7 @@ function BulkCertificateGenerator() {
     issuer: '',
     additionalInfo: '',
     template: 'classic-elegance',
+    apiKey: '',
   });
   const [csvFile, setCsvFile] = useState(null);
   const [logo, setLogo] = useState(null);
@@ -78,13 +79,17 @@ function BulkCertificateGenerator() {
   };
 
   const handleSignatureDraw = (index) => {
-    const newSignatures = [...signatures];
-    newSignatures[index].image = sigPads.current[index].toDataURL();
-    setSignatures(newSignatures);
+    if (sigPads.current[index]) {
+      const newSignatures = [...signatures];
+      newSignatures[index].image = sigPads.current[index].toDataURL();
+      setSignatures(newSignatures);
+    }
   };
 
   const addSignatureField = () => {
-    setSignatures([...signatures, { name: '', image: null, type: 'upload' }]);
+    if (signatures.length < 3) {
+      setSignatures([...signatures, { name: '', image: null, type: 'upload' }]);
+    }
   };
 
   const removeSignatureField = (index) => {
@@ -134,17 +139,18 @@ function BulkCertificateGenerator() {
     <div className="certificate-bulk-generator">
       <h1>Bulk Certificate Generator</h1>
       <form onSubmit={handleSubmit}>
-        <div className="upload-section">
-          <label htmlFor="csvFile">Upload CSV File</label>
+        <div className="form-group">
+          <label htmlFor="apiKey">API Key</label>
           <input
-            type="file"
-            id="csvFile"
-            accept=".csv"
-            onChange={handleCsvUpload}
+            type="text"
+            id="apiKey"
+            name="apiKey"
+            value={formData.apiKey}
+            onChange={handleInputChange}
             required
           />
         </div>
-        <div className="course-input">
+        <div className="form-group">
           <label htmlFor="course">Course Name</label>
           <input
             type="text"
@@ -155,7 +161,7 @@ function BulkCertificateGenerator() {
             required
           />
         </div>
-        <div className="date-input">
+        <div className="form-group">
           <label htmlFor="date">Date</label>
           <input
             type="date"
@@ -166,21 +172,20 @@ function BulkCertificateGenerator() {
             required
           />
         </div>
-        <div className="type-selector">
+        <div className="form-group">
           <label htmlFor="certificateType">Certificate Type</label>
           <select
             id="certificateType"
             name="certificateType"
             value={formData.certificateType}
             onChange={handleInputChange}
-            required
           >
             <option value="completion">Completion</option>
             <option value="participation">Participation</option>
             <option value="achievement">Achievement</option>
           </select>
         </div>
-        <div className="issuer-input">
+        <div className="form-group">
           <label htmlFor="issuer">Issuer</label>
           <input
             type="text"
@@ -191,7 +196,7 @@ function BulkCertificateGenerator() {
             required
           />
         </div>
-        <div className="info-textarea">
+        <div className="form-group">
           <label htmlFor="additionalInfo">Additional Information</label>
           <textarea
             id="additionalInfo"
@@ -200,21 +205,20 @@ function BulkCertificateGenerator() {
             onChange={handleInputChange}
           />
         </div>
-        <div className="template-selector">
-          <label htmlFor="template">Certificate Template</label>
+        <div className="form-group">
+          <label htmlFor="template">Template</label>
           <select
             id="template"
             name="template"
             value={formData.template}
             onChange={handleInputChange}
-            required
           >
             <option value="classic-elegance">Classic Elegance</option>
             <option value="modern-minimalist">Modern Minimalist</option>
             <option value="vibrant-achievement">Vibrant Achievement</option>
           </select>
         </div>
-        <div className="logo-uploader">
+        <div className="form-group">
           <label htmlFor="logo-upload">Upload Logo</label>
           <input
             id="logo-upload"
@@ -223,13 +227,12 @@ function BulkCertificateGenerator() {
             accept="image/*"
           />
         </div>
-        <div className="signature-container">
-          <label>Signatures</label>
+        <div className="signatures-container">
           {signatures.map((signature, index) => (
-            <div key={index} className="signature-entry">
+            <div key={index} className="signature-field">
               <input
                 type="text"
-                placeholder="Signatory Name"
+                placeholder="Signature Name"
                 value={signature.name}
                 onChange={(e) => handleSignatureNameChange(index, e.target.value)}
               />
