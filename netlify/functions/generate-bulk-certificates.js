@@ -89,13 +89,22 @@ async function startBulkGeneration(generationId, names, formData, logo, signatur
     const certificates = [];
   
     const logoBuffer = logo ? Buffer.from(logo) : null;
+    
+    // Parse signatures only if it's a string
+    let parsedSignatures;
+    try {
+        parsedSignatures = typeof signatures === 'string' ? JSON.parse(signatures) : signatures;
+    } catch (error) {
+        console.error('Error parsing signatures:', error);
+        parsedSignatures = [];  // Fallback to empty array if parsing fails
+    }
   
     for (const name of names) {
       const certificateData = { 
         ...formData, 
         name,
         logo: logoBuffer,
-        signatures: Array.isArray(signatures) ? signatures : JSON.parse(signatures)
+        signatures: parsedSignatures
       };
       const result = await generateCertificate(certificateData);
       certificates.push(result);
@@ -115,7 +124,7 @@ async function startBulkGeneration(generationId, names, formData, logo, signatur
   
     // Update generation status to 'completed'
     await updateGenerationStatus(generationId, 'completed', s3Key);
-  }
+}
 
 async function updateGenerationStatus(generationId, status, s3Key = null) {
     const tableName = process.env.DYNAMODB_BULK_GENERATIONS_TABLE;
