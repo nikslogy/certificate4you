@@ -164,13 +164,17 @@ async function validateApiKey(apiKey) {
       throw new Error('API key usage limit exceeded');
     }
   
-    // Update the usage count - simplified version matching generate-certificate.js
-    await dynamoDb.update({
-      TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-      Key: { userId: user.userId, apiKey: user.apiKey },
-      UpdateExpression: 'SET usageCount = usageCount + :inc',
-      ExpressionAttributeValues: { ':inc': 1 },
-    });
+    try {
+      await dynamoDb.update({
+        TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+        Key: { userId: user.userId, apiKey: user.apiKey },
+        UpdateExpression: 'SET usageCount = usageCount + :inc',
+        ExpressionAttributeValues: { ':inc': 1 },
+      });
+    } catch (error) {
+      console.error('Error updating API key usage:', error);
+      throw new Error('Failed to update API key usage');
+    }
   
     return user;
   }
