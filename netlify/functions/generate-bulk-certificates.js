@@ -82,60 +82,79 @@ function parseMultipartForm(body, contentType) {
 }
 
 async function startBulkGeneration(generationId, names, formData, logo, signatures) {
-    // Update generation status to 'in-progress'
-    await updateGenerationStatus(generationId, 'in-progress');
-  
-    const zip = new JSZip();
-    const certificates = [];
-  
-    const logoBuffer = logo ? Buffer.from(logo) : null;
-    
-    // Parse signatures only if it's a string
-    let parsedSignatures;
     try {
-        parsedSignatures = typeof signatures === 'string' ? JSON.parse(signatures) : signatures || [];
-    } catch (error) {
-        console.error('Error parsing signatures:', error);
-        parsedSignatures = [];  // Fallback to empty array if parsing fails
-    }
-  
-    for (const name of names) {
+        // Update generation status to 'in-progress'
+        await updateGenerationStatus(generationId, 'in-progress');
+      
+        const zip = new JSZip();
+        const certificates = [];
+      
+        const logoBuffer = logo ? Buffer.from(logo) : null;
+        
+        // Parse signatures only if it's a string
+        let parsedSignatures;
         try {
-            const result = await generateCertificate(
-                name,                           // name
-                formData.course,               // course
-                formData.date,                 // date
-                logoBuffer,                    // logoBuffer
-                formData.certificateType || 'completion',  // certificateType
-                formData.issuer || '',         // issuer
-                formData.additionalInfo || '', // additionalInfo
-                parsedSignatures,              // signatures
-                formData.template || 'classic-elegance'  // template
-            );
-            
-            certificates.push(result);
-            zip.file(`${name}_certificate.pdf`, result.pdfBuffer);
+            parsedSignatures = typeof signatures === 'string' ? JSON.parse(signatures) : signatures || [];
         } catch (error) {
-            console.error(`Error generating certificate for ${name}:`, error);
-            continue;  // Skip this certificate and continue with others
+            console.error('Error parsing signatures:', error);
+            parsedSignatures = [];
         }
-    }
-  
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-    console.log('S3_BUCKET_NAME:', process.env.S3_BUCKET_NAME);
+      
+        for (const name of names) {
+            try {
+                const result = await generateCertificate(
+                    name,
+                    formData.course,
+                    formData.date,
+                    logoBuffer,
+                    formData.certificateType || 'completion',
+                    formData.issuer || '',
+                    formData.additionalInfo || '',
+                    parsedSignatures,
+                    formData.template || 'classic-elegance'
+                );
+                
+                certificates.push(result);
+                zip.file(`${name}_certificate.pdf`, result.pdfBuffer);
+            } catch (error) {
+                console.error(`Error generating certificate for ${name}:`, error);
+                continue;
+            }
+        }
+      
+        const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+        
+        // Add logging to debug environment variables
+        console.log('Environment variables:', {
+            S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
+            IMPORTED_BUCKET_NAME: S3_BUCKET_NAME
+        });
 
-  
-    // Upload zip file to S3
-    const s3Key = `bulk-certificates/${generationId}.zip`;
-    await s3.upload({
-        Bucket: process.env.S3_BUCKET_NAME,
-        Key: s3Key,
-        Body: zipBuffer,
-        ContentType: 'application/zip'
-    }).promise();
-  
-    // Update generation status to 'completed'
-    await updateGenerationStatus(generationId, 'completed', s3Key);
+        if (!process.env.S3_BUCKET_NAME && !S3_BUCKET_NAME) {
+            throw new Error('S3 bucket name is not configured');
+        }
+      
+        // Upload zip file to S3
+        const s3Key = `bulk-certificates/${generationId}.zip`;
+        const uploadParams = {
+            Bucket: S3_BUCKET_NAME || process.env.S3_BUCKET_NAME,
+            Key: s3Key,
+            Body: zipBuffer,
+            ContentType: 'application/zip'
+        };
+
+        console.log('Upload params:', uploadParams);
+
+        await s3.upload(uploadParams).promise();
+      
+        // Update generation status to 'completed'
+        await updateGenerationStatus(generationId, 'completed', s3Key);
+    } catch (error) {
+        console.error('Error in startBulkGeneration:', error);
+        // Update status to failed
+        await updateGenerationStatus(generationId, 'failed');
+        throw error;
+    }
 }
 
 async function updateGenerationStatus(generationId, status, s3Key = null) {

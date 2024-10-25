@@ -21,5 +21,5 @@ const dynamoDb = DynamoDBDocumentClient.from(client);
 module.exports = {
   s3,
   dynamoDb,
-  S3_BUCKET_NAME: process.env.MYCERT_S3_BUCKET_NAME
+  S3_BUCKET_NAME
 };
