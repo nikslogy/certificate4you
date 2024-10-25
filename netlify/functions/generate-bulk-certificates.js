@@ -35,8 +35,11 @@ exports.handler = async (event, context) => {
   
       const bulkGenerationId = uuidv4();
   
+      // Parse formDataJson if it's a string
+      const parsedFormData = typeof formDataJson === 'string' ? JSON.parse(formDataJson) : formDataJson;
+  
       // Start the bulk generation process
-      await startBulkGeneration(bulkGenerationId, names, JSON.parse(formDataJson), logo, signatures);
+      await startBulkGeneration(bulkGenerationId, names, parsedFormData, logo, signatures);
   
       return {
         statusCode: 200,
@@ -79,40 +82,40 @@ function parseMultipartForm(body, contentType) {
 }
 
 async function startBulkGeneration(generationId, names, formData, logo, signatures) {
-  // Update generation status to 'in-progress'
-  await updateGenerationStatus(generationId, 'in-progress');
-
-  const zip = new JSZip();
-  const certificates = [];
-
-  const logoBuffer = logo ? Buffer.from(logo) : null;
-
-  for (const name of names) {
-    const certificateData = { 
-      ...formData, 
-      name,
-      logo: logoBuffer,
-      signatures: JSON.parse(signatures)
-    };
-    const result = await generateCertificate(certificateData);
-    certificates.push(result);
-    zip.file(`${name}_certificate.pdf`, result.pdfBuffer);
+    // Update generation status to 'in-progress'
+    await updateGenerationStatus(generationId, 'in-progress');
+  
+    const zip = new JSZip();
+    const certificates = [];
+  
+    const logoBuffer = logo ? Buffer.from(logo) : null;
+  
+    for (const name of names) {
+      const certificateData = { 
+        ...formData, 
+        name,
+        logo: logoBuffer,
+        signatures: Array.isArray(signatures) ? signatures : JSON.parse(signatures)
+      };
+      const result = await generateCertificate(certificateData);
+      certificates.push(result);
+      zip.file(`${name}_certificate.pdf`, result.pdfBuffer);
+    }
+  
+    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+  
+    // Upload zip file to S3
+    const s3Key = `bulk-certificates/${generationId}.zip`;
+    await s3.upload({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: s3Key,
+      Body: zipBuffer,
+      ContentType: 'application/zip'
+    }).promise();
+  
+    // Update generation status to 'completed'
+    await updateGenerationStatus(generationId, 'completed', s3Key);
   }
-
-  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-
-  // Upload zip file to S3
-  const s3Key = `bulk-certificates/${generationId}.zip`;
-  await s3.upload({
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: s3Key,
-    Body: zipBuffer,
-    ContentType: 'application/zip'
-  }).promise();
-
-  // Update generation status to 'completed'
-  await updateGenerationStatus(generationId, 'completed', s3Key);
-}
 
 async function updateGenerationStatus(generationId, status, s3Key = null) {
     const tableName = process.env.DYNAMODB_BULK_GENERATIONS_TABLE;
