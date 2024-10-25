@@ -5,6 +5,7 @@ const { s3, dynamoDb } = require('./config');
 const JSZip = require('jszip');
 const { Buffer } = require('buffer');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const busboy = require('busboy');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -18,17 +19,17 @@ exports.handler = async (event, context) => {
     }
 
     const formData = await parseMultipartForm(body, contentType);
-    const { csvFile, formDataJson, logo, signatures, numberOfNames, apiKey } = formData;
+    const { csvFile, formData: formDataJson, logo, signatures, numberOfNames, apiKey } = formData;
 
     // Validate API key
     await validateApiKey(apiKey);
 
     let names;
     if (csvFile) {
-      const csvData = parse(csvFile, { columns: true, skip_empty_lines: true });
+      const csvData = parse(csvFile.toString(), { columns: true, skip_empty_lines: true });
       names = csvData.map(row => row.name);
     } else {
-      names = await generateNamesWithGemini(numberOfNames);
+      names = await generateNamesWithGemini(parseInt(numberOfNames));
     }
 
     const bulkGenerationId = uuidv4();
@@ -51,31 +52,27 @@ exports.handler = async (event, context) => {
   }
 };
 
-async function parseMultipartForm(body, contentType) {
-  const busboy = require('busboy');
+function parseMultipartForm(body, contentType) {
   return new Promise((resolve, reject) => {
     const formData = {};
     const bb = busboy({ headers: { 'content-type': contentType } });
 
     bb.on('file', (name, file, info) => {
-      const { filename, encoding, mimeType } = info;
       const chunks = [];
-      file.on('data', (data) => {
-        chunks.push(data);
-      });
+      file.on('data', (data) => chunks.push(data));
       file.on('end', () => {
         formData[name] = Buffer.concat(chunks);
       });
     });
 
-    bb.on('field', (name, val, info) => {
+    bb.on('field', (name, val) => {
       formData[name] = val;
     });
 
     bb.on('finish', () => resolve(formData));
-    bb.on('error', (error) => reject(error));
+    bb.on('error', reject);
 
-    bb.write(body);
+    bb.write(Buffer.from(body, 'base64'));
     bb.end();
   });
 }

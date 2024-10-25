@@ -101,7 +101,7 @@ function BulkCertificateGenerator() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-
+  
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('formData', JSON.stringify(formData));
@@ -109,22 +109,22 @@ function BulkCertificateGenerator() {
       signatures.forEach((sig, index) => {
         formDataToSend.append(`signature_${index}`, JSON.stringify(sig));
       });
-
+  
       if (csvFile) {
         formDataToSend.append('csvFile', csvFile);
       } else {
         formDataToSend.append('numberOfNames', numberOfNames.toString());
       }
-
+  
       const response = await fetch('/.netlify/functions/generate-bulk-certificates', {
         method: 'POST',
         body: formDataToSend,
       });
-
+  
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
       const result = await response.json();
       navigate('/dashboard', { state: { bulkGenerationId: result.generationId } });
     } catch (error) {
