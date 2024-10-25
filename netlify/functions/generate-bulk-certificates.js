@@ -142,7 +142,8 @@ async function startBulkGeneration(generationId, names, formData, logo, signatur
             Body: '[ZIP Buffer]' // Don't log the actual buffer
         });
 
-        await s3.send(new PutObjectCommand(uploadParams));
+        // Using AWS SDK v2 upload method
+        await s3.upload(uploadParams).promise();
       
         // Update generation status to 'completed'
         await updateGenerationStatus(generationId, 'completed', s3Key);
@@ -153,6 +154,11 @@ async function startBulkGeneration(generationId, names, formData, logo, signatur
         throw error;
     }
 }
+
+module.exports = {
+    handler: exports.handler,
+    startBulkGeneration
+};
 
 async function updateGenerationStatus(generationId, status, s3Key = null) {
     const tableName = process.env.DYNAMODB_BULK_GENERATIONS_TABLE;
