@@ -179,8 +179,9 @@ async function validateApiKey(apiKey) {
       return user;
     } catch (error) {
       console.error('Error validating or updating API key:', error);
-      if (error.name === 'ValidationException' && error.message.includes('ExpressionAttributeValues must not be empty')) {
-        console.error('ExpressionAttributeValues is empty. Current values:', { ':inc': 1, ':zero': 0 });
+      if (error.name === 'ValidationException') {
+        console.error('Validation error. Table name:', process.env.DYNAMODB_API_KEYS_TABLE);
+        console.error('User object:', JSON.stringify(user, null, 2));
       }
       throw new Error('Failed to validate or update API key');
     }
