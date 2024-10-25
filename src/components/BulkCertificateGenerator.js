@@ -4,6 +4,17 @@ import SignatureCanvas from 'react-signature-canvas';
 import './BulkCertificateGenerator.css';
 
 function BulkCertificateGenerator() {
+    const dataURLtoFile = (dataurl, filename) => {
+        const arr = dataurl.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], filename, { type: mime });
+      };
   const [formData, setFormData] = useState({
     course: '',
     date: '',
@@ -102,20 +113,19 @@ function BulkCertificateGenerator() {
     setIsLoading(true);
     setError(null);
   
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('formData', JSON.stringify(formData));
-      if (logo) formDataToSend.append('logo', logo);
-      signatures.forEach((sig, index) => {
-        formDataToSend.append(`signature_${index}`, JSON.stringify(sig));
-      });
-  
-      if (csvFile) {
-        formDataToSend.append('csvFile', csvFile);
-      } else {
-        formDataToSend.append('numberOfNames', numberOfNames.toString());
+    const formDataToSend = new FormData();
+    formDataToSend.append('formData', JSON.stringify(formData));
+    if (csvFile) formDataToSend.append('csvFile', csvFile);
+    if (logo) formDataToSend.append('logo', logo);
+    signatures.forEach((sig, index) => {
+      if (sig.image) {
+        formDataToSend.append(`signature_${index}`, dataURLtoFile(sig.image, `signature_${index}.png`));
       }
+    });
+    formDataToSend.append('numberOfNames', numberOfNames.toString());
+    formDataToSend.append('apiKey', formData.apiKey);
   
+    try {
       const response = await fetch('/.netlify/functions/generate-bulk-certificates', {
         method: 'POST',
         body: formDataToSend,
@@ -126,10 +136,10 @@ function BulkCertificateGenerator() {
       }
   
       const result = await response.json();
-      navigate('/dashboard', { state: { bulkGenerationId: result.generationId } });
+      navigate(`/bulk-generation-status/${result.generationId}`);
     } catch (error) {
-      console.error('Error generating bulk certificates:', error);
-      setError('Failed to generate bulk certificates. Please try again.');
+      console.error('Error:', error);
+      setError('Failed to generate certificates. Please try again.');
     } finally {
       setIsLoading(false);
     }

@@ -147,6 +147,10 @@ async function generateNamesWithGemini(count) {
 }
 
 async function validateApiKey(apiKey) {
+    if (!apiKey) {
+      throw new Error('API key is missing');
+    }
+  
     try {
       const result = await dynamoDb.send(new QueryCommand({
         TableName: process.env.DYNAMODB_API_KEYS_TABLE,
@@ -183,6 +187,6 @@ async function validateApiKey(apiKey) {
         console.error('Validation error. Table name:', process.env.DYNAMODB_API_KEYS_TABLE);
         console.error('API Key:', apiKey);
       }
-      throw new Error('Failed to validate or update API key');
+      throw new Error(`Failed to validate or update API key: ${error.message}`);
     }
   }
