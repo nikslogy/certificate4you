@@ -17,6 +17,7 @@ function BulkCertificateGenerator() {
   const [signatures, setSignatures] = useState([{ name: '', image: null, type: 'upload' }]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [numberOfNames, setNumberOfNames] = useState(10);
   const sigPads = useRef([]);
   const navigate = useNavigate();
 
@@ -83,9 +84,7 @@ function BulkCertificateGenerator() {
   };
 
   const addSignatureField = () => {
-    if (signatures.length < 3) {
-      setSignatures([...signatures, { name: '', image: null, type: 'upload' }]);
-    }
+    setSignatures([...signatures, { name: '', image: null, type: 'upload' }]);
   };
 
   const removeSignatureField = (index) => {
@@ -97,25 +96,30 @@ function BulkCertificateGenerator() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-  
+
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('csvFile', csvFile);
       formDataToSend.append('formData', JSON.stringify(formData));
-      formDataToSend.append('logo', logo);
+      if (logo) formDataToSend.append('logo', logo);
       signatures.forEach((sig, index) => {
         formDataToSend.append(`signature_${index}`, JSON.stringify(sig));
       });
-  
+
+      if (csvFile) {
+        formDataToSend.append('csvFile', csvFile);
+      } else {
+        formDataToSend.append('numberOfNames', numberOfNames.toString());
+      }
+
       const response = await fetch('/.netlify/functions/generate-bulk-certificates', {
         method: 'POST',
         body: formDataToSend,
       });
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       const result = await response.json();
       navigate('/dashboard', { state: { bulkGenerationId: result.generationId } });
     } catch (error) {
@@ -258,6 +262,28 @@ function BulkCertificateGenerator() {
             <button type="button" onClick={addSignatureField}>Add Signature</button>
           )}
         </div>
+        <div className="form-group">
+          <label htmlFor="csv-upload">Upload CSV file (optional)</label>
+          <input
+            id="csv-upload"
+            type="file"
+            onChange={handleCsvUpload}
+            accept=".csv"
+          />
+        </div>
+        {!csvFile && (
+          <div className="form-group">
+            <label htmlFor="number-of-names">Number of names to generate</label>
+            <input
+              id="number-of-names"
+              type="number"
+              min="1"
+              max="100"
+              value={numberOfNames}
+              onChange={(e) => setNumberOfNames(parseInt(e.target.value))}
+            />
+          </div>
+        )}
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Generating...' : 'Generate Bulk Certificates'}
         </button>

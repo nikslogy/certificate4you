@@ -5,14 +5,23 @@ const { s3, dynamoDb } = require('./config');
 const JSZip = require('jszip');
 const multipart = require('parse-multipart');
 const { Buffer } = require('buffer');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 exports.handler = async (event, context) => {
   try {
     const { body, headers } = event;
-    const boundary = multipart.getBoundary(headers['content-type']);
+    const contentType = headers['content-type'] || headers['Content-Type'];
+
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      throw new Error('Invalid content type. Expected multipart/form-data.');
+    }
+
+    const boundary = multipart.getBoundary(contentType);
     const parts = multipart.Parse(Buffer.from(body, 'base64'), boundary);
 
-    let csvFile, formData, logo, signatures = [];
+    let csvFile, formData, logo, signatures = [], numberOfNames;
 
     parts.forEach(part => {
       if (part.filename) {
@@ -25,14 +34,23 @@ exports.handler = async (event, context) => {
         formData = JSON.parse(part.data.toString('utf8'));
       } else if (part.name.startsWith('signature_')) {
         signatures.push(JSON.parse(part.data.toString('utf8')));
+      } else if (part.name === 'numberOfNames') {
+        numberOfNames = parseInt(part.data.toString('utf8'));
       }
     });
 
-    const csvData = parse(csvFile, { columns: true, skip_empty_lines: true });
+    let names;
+    if (csvFile) {
+      const csvData = parse(csvFile, { columns: true, skip_empty_lines: true });
+      names = csvData.map(row => row.name);
+    } else {
+      names = await generateNamesWithGemini(numberOfNames);
+    }
+
     const bulkGenerationId = uuidv4();
 
     // Start the bulk generation process
-    await startBulkGeneration(bulkGenerationId, csvData, formData, logo, signatures);
+    await startBulkGeneration(bulkGenerationId, names, formData, logo, signatures);
 
     return {
       statusCode: 200,
@@ -49,18 +67,25 @@ exports.handler = async (event, context) => {
   }
 };
 
-async function startBulkGeneration(generationId, csvData, formData) {
+async function startBulkGeneration(generationId, names, formData, logo, signatures) {
   // Update generation status to 'in-progress'
   await updateGenerationStatus(generationId, 'in-progress');
 
   const zip = new JSZip();
   const certificates = [];
 
-  for (const row of csvData) {
-    const certificateData = { ...formData, name: row.name };
+  const logoBuffer = logo ? Buffer.from(logo) : null;
+
+  for (const name of names) {
+    const certificateData = { 
+      ...formData, 
+      name,
+      logo: logoBuffer,
+      signatures
+    };
     const result = await generateCertificate(certificateData);
     certificates.push(result);
-    zip.file(`${row.name}_certificate.pdf`, result.pdfBuffer);
+    zip.file(`${name}_certificate.pdf`, result.pdfBuffer);
   }
 
   const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
@@ -93,4 +118,19 @@ async function updateGenerationStatus(generationId, status, s3Key = null) {
   }
 
   await dynamoDb.update(params).promise();
+}
+
+async function generateNamesWithGemini(count) {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const prompt = `Generate a list of ${count} random full names, one per line.`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const names = result.response.text().split('\n').map(name => name.trim());
+    return names;
+  } catch (error) {
+    console.error('Error generating names with Gemini:', error);
+    // Fallback to generating random names
+    return Array.from({ length: count }, () => `Person ${Math.floor(Math.random() * 1000)}`);
+  }
 }
