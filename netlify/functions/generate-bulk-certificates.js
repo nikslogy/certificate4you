@@ -7,8 +7,9 @@ const { Buffer } = require('buffer');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const busboy = require('busboy');
 const { QueryCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
-
+const csvData = parse(csvFile, { columns: true, skip_empty_lines: true });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 
 exports.handler = async (event, context) => {
   try {
@@ -128,7 +129,7 @@ async function updateGenerationStatus(generationId, status, s3Key = null) {
       params.ExpressionAttributeValues[':s3Key'] = s3Key;
     }
   
-    await dynamoDb.update(params).promise();
+    await dynamoDb.send(new UpdateCommand(params));
   }
 
 async function generateNamesWithGemini(count) {
