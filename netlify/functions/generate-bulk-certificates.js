@@ -93,22 +93,32 @@ async function startBulkGeneration(generationId, names, formData, logo, signatur
     // Parse signatures only if it's a string
     let parsedSignatures;
     try {
-        parsedSignatures = typeof signatures === 'string' ? JSON.parse(signatures) : signatures;
+        parsedSignatures = typeof signatures === 'string' ? JSON.parse(signatures) : signatures || [];
     } catch (error) {
         console.error('Error parsing signatures:', error);
         parsedSignatures = [];  // Fallback to empty array if parsing fails
     }
   
     for (const name of names) {
-      const certificateData = { 
-        ...formData, 
-        name,
-        logo: logoBuffer,
-        signatures: parsedSignatures
-      };
-      const result = await generateCertificate(certificateData);
-      certificates.push(result);
-      zip.file(`${name}_certificate.pdf`, result.pdfBuffer);
+        try {
+            const result = await generateCertificate(
+                name,                           // name
+                formData.course,               // course
+                formData.date,                 // date
+                logoBuffer,                    // logoBuffer
+                formData.certificateType || 'completion',  // certificateType
+                formData.issuer || '',         // issuer
+                formData.additionalInfo || '', // additionalInfo
+                parsedSignatures,              // signatures
+                formData.template || 'classic-elegance'  // template
+            );
+            
+            certificates.push(result);
+            zip.file(`${name}_certificate.pdf`, result.pdfBuffer);
+        } catch (error) {
+            console.error(`Error generating certificate for ${name}:`, error);
+            continue;  // Skip this certificate and continue with others
+        }
     }
   
     const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
@@ -116,10 +126,10 @@ async function startBulkGeneration(generationId, names, formData, logo, signatur
     // Upload zip file to S3
     const s3Key = `bulk-certificates/${generationId}.zip`;
     await s3.upload({
-      Bucket: process.env.S3_BUCKET_NAME,
-      Key: s3Key,
-      Body: zipBuffer,
-      ContentType: 'application/zip'
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: s3Key,
+        Body: zipBuffer,
+        ContentType: 'application/zip'
     }).promise();
   
     // Update generation status to 'completed'
