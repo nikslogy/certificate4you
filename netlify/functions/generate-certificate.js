@@ -4,6 +4,8 @@ const { s3, S3_BUCKET_NAME } = require('./config');
 const cors = require('cors')({ origin: true });
 const { DynamoDB } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocument } = require("@aws-sdk/lib-dynamodb");
+const { parse } = require('csv-parse/sync');
+const JSZip = require('jszip');
 
 const dynamoDb = DynamoDBDocument.from(new DynamoDB({
   region: process.env.MYCERT_AWS_REGION,
@@ -46,19 +48,11 @@ exports.handler = async (event, context) => {
     let parsedBody = parseBody(event.body);
     console.log('Parsed body:', parsedBody);
 
-    const { name, course, date, certificateType, issuer, additionalInfo, signatures, logo, template } = parsedBody;
-    const logoBuffer = logo ? Buffer.from(logo, 'base64') : null;
-
-    const uniqueId = uuidv4();
-    console.log('Generated uniqueId:', uniqueId);
-    const result = await generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures || [], template);
-    console.log('Certificate generation result:', result);
-
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: result.id, url: result.url })
-    };
+    if (parsedBody.action === 'bulk') {
+      return await handleBulkGeneration(parsedBody);
+    } else {
+      return await handleSingleGeneration(parsedBody);
+    }
   } catch (error) {
     console.error('Error generating certificates:', error);
     return {
@@ -68,6 +62,90 @@ exports.handler = async (event, context) => {
     };
   }
 };
+
+async function handleSingleGeneration(parsedBody) {
+  const { name, course, date, certificateType, issuer, additionalInfo, signatures, logo, template } = parsedBody;
+  const logoBuffer = logo ? Buffer.from(logo, 'base64') : null;
+
+  const uniqueId = uuidv4();
+  console.log('Generated uniqueId:', uniqueId);
+  const result = await generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures || [], template);
+  console.log('Certificate generation result:', result);
+
+  return {
+    statusCode: 200,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: result.id, url: result.url })
+  };
+}
+
+async function handleBulkGeneration(parsedBody) {
+  const { csvFile, formData, logo, signatures } = parsedBody;
+  const csvData = parse(csvFile, { columns: true, skip_empty_lines: true });
+  const bulkGenerationId = uuidv4();
+
+  // Start the bulk generation process
+  await startBulkGeneration(bulkGenerationId, csvData, formData, logo, signatures);
+
+  return {
+    statusCode: 200,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ generationId: bulkGenerationId })
+  };
+}
+
+async function startBulkGeneration(generationId, csvData, formData, logo, signatures) {
+  // Update generation status to 'in-progress'
+  await updateGenerationStatus(generationId, 'in-progress');
+
+  const zip = new JSZip();
+  const certificates = [];
+
+  const logoBuffer = logo ? Buffer.from(logo, 'base64') : null;
+
+  for (const row of csvData) {
+    const certificateData = { 
+      ...formData, 
+      name: row.name,
+      logo: logoBuffer,
+      signatures: signatures
+    };
+    const result = await generateCertificate(certificateData);
+    certificates.push(result);
+    zip.file(`${row.name}_certificate.pdf`, result.pdfBuffer);
+  }
+
+  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+  // Upload zip file to S3
+  const s3Key = `bulk-certificates/${generationId}.zip`;
+  await s3.upload({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: s3Key,
+    Body: zipBuffer,
+    ContentType: 'application/zip'
+  }).promise();
+
+  // Update generation status to 'completed'
+  await updateGenerationStatus(generationId, 'completed', s3Key);
+}
+
+async function updateGenerationStatus(generationId, status, s3Key = null) {
+  const params = {
+    TableName: process.env.DYNAMODB_BULK_GENERATIONS_TABLE,
+    Key: { generationId },
+    UpdateExpression: 'SET #status = :status',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: { ':status': status }
+  };
+
+  if (s3Key) {
+    params.UpdateExpression += ', s3Key = :s3Key';
+    params.ExpressionAttributeValues[':s3Key'] = s3Key;
+  }
+
+  await dynamoDb.update(params);
+}
 
 async function validateApiKey(apiKey) {
   const result = await dynamoDb.query({

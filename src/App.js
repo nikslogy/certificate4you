@@ -18,6 +18,7 @@ import Settings from './components/Settings';
 import PublicRoute from './components/PublicRoute';
 import userIcon from './assets/user.png';
 import AICertificateGenerator from './components/AICertificateGenerator';
+import BulkCertificateGenerator from './components/BulkCertificateGenerator';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -73,6 +74,7 @@ function App() {
                     <div className="menu-section">
                       <div className="menu-section-title">Certificate Actions</div>
                       <li><NavLink to="/generate" onClick={() => setMenuOpen(false)}>Generate</NavLink></li>
+                      <li><NavLink to="/bulk-generate" onClick={()=>setMenuOpen(false)}>Bulk Generate</NavLink></li>
                       <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
                       <li><NavLink to="/ai-generate" onClick={() => setMenuOpen(false)}>AI Generate</NavLink></li>
 
@@ -101,6 +103,7 @@ function App() {
                 <ul className={`navbar-menu ${menuOpen ? 'open' : ''}`}>
                   <li><NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink></li>
                   <li><NavLink to="/generate" onClick={() => setMenuOpen(false)}>Generate</NavLink></li>
+                  <li><NavLink to="/bulk-generate" onClick={() => setMenuOpen(false)}> Bulk Generate</NavLink></li>
                   <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
                   <li><NavLink to="/api-guide" onClick={() => setMenuOpen(false)}>API Guide</NavLink></li>
                   <li><NavLink to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</NavLink></li>
@@ -139,6 +142,7 @@ function App() {
             <Route path="/dashboard" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Dashboard /></ProtectedRoute>} />
             <Route path="/api-key-generator" element={<ProtectedRoute isAuthenticated={isAuthenticated}><ApiKeyGenerator /></ProtectedRoute>} />
             <Route path="/generate" element={<CertificateGenerator />} />
+            <Route path="/bulk-generate" element={<BulkCertificateGenerator />} />
             <Route path="/ai-generate" element={<AICertificateGenerator />} />
             <Route path="/verify" element={<CertificateVerifier />} />
             <Route path="/account" element={<ProtectedRoute isAuthenticated={isAuthenticated}><MyAccount /></ProtectedRoute>} />
