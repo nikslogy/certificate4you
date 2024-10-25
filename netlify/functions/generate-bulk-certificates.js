@@ -146,23 +146,30 @@ async function generateNamesWithGemini(count) {
 }
 
 async function validateApiKey(apiKey) {
-  const result = await dynamoDb.get({
+  const result = await dynamoDb.query({
     TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-    Key: { apiKey }
-  }).promise();
-
-  if (!result.Item) {
+    IndexName: 'apiKey-index',
+    KeyConditionExpression: 'apiKey = :apiKey',
+    ExpressionAttributeValues: {
+      ':apiKey': apiKey,
+    },
+  });
+  
+  if (!result.Items || result.Items.length === 0) {
     throw new Error('Invalid API key');
   }
+  const user = result.Items[0];
 
-  if (result.Item.usageCount >= result.Item.limit) {
+  if (user.usageCount >= user.limit) {
     throw new Error('API key usage limit exceeded');
   }
 
   await dynamoDb.update({
     TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-    Key: { apiKey },
+    Key: { userId: user.userId, apiKey: user.apiKey },
     UpdateExpression: 'SET usageCount = usageCount + :inc',
     ExpressionAttributeValues: { ':inc': 1 },
-  }).promise();
+  });
+
+  return user;
 }
