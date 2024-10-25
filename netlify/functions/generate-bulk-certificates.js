@@ -3,15 +3,36 @@ const { generateCertificate } = require('../../backend/certificateGenerator');
 const { v4: uuidv4 } = require('uuid');
 const { s3, dynamoDb } = require('./config');
 const JSZip = require('jszip');
+const multipart = require('parse-multipart');
+const { Buffer } = require('buffer');
 
 exports.handler = async (event, context) => {
   try {
-    const { csvFile, formData } = JSON.parse(event.body);
+    const { body, headers } = event;
+    const boundary = multipart.getBoundary(headers['content-type']);
+    const parts = multipart.Parse(Buffer.from(body, 'base64'), boundary);
+
+    let csvFile, formData, logo, signatures = [];
+
+    parts.forEach(part => {
+      if (part.filename) {
+        if (part.filename.endsWith('.csv')) {
+          csvFile = part.data.toString('utf8');
+        } else if (part.filename.startsWith('logo')) {
+          logo = part.data;
+        }
+      } else if (part.name === 'formData') {
+        formData = JSON.parse(part.data.toString('utf8'));
+      } else if (part.name.startsWith('signature_')) {
+        signatures.push(JSON.parse(part.data.toString('utf8')));
+      }
+    });
+
     const csvData = parse(csvFile, { columns: true, skip_empty_lines: true });
     const bulkGenerationId = uuidv4();
 
     // Start the bulk generation process
-    await startBulkGeneration(bulkGenerationId, csvData, formData);
+    await startBulkGeneration(bulkGenerationId, csvData, formData, logo, signatures);
 
     return {
       statusCode: 200,

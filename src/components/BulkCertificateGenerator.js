@@ -97,27 +97,30 @@ function BulkCertificateGenerator() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-
-    const formDataToSend = new FormData();
-    formDataToSend.append('csvFile', csvFile);
-    formDataToSend.append('formData', JSON.stringify(formData));
-    if (logo) formDataToSend.append('logo', logo);
-    formDataToSend.append('signatures', JSON.stringify(signatures));
-
+  
     try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('csvFile', csvFile);
+      formDataToSend.append('formData', JSON.stringify(formData));
+      formDataToSend.append('logo', logo);
+      signatures.forEach((sig, index) => {
+        formDataToSend.append(`signature_${index}`, JSON.stringify(sig));
+      });
+  
       const response = await fetch('/.netlify/functions/generate-bulk-certificates', {
         method: 'POST',
         body: formDataToSend,
       });
-
+  
       if (!response.ok) {
-        throw new Error('Failed to start bulk certificate generation');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
       const result = await response.json();
-      navigate(`/dashboard?generationId=${result.generationId}`);
+      navigate('/dashboard', { state: { bulkGenerationId: result.generationId } });
     } catch (error) {
-      setError(error.message);
+      console.error('Error generating bulk certificates:', error);
+      setError('Failed to generate bulk certificates. Please try again.');
     } finally {
       setIsLoading(false);
     }
