@@ -6,6 +6,7 @@ const JSZip = require('jszip');
 const { Buffer } = require('buffer');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const busboy = require('busboy');
+const { QueryCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -146,26 +147,26 @@ async function generateNamesWithGemini(count) {
 }
 
 async function validateApiKey(apiKey) {
-    const result = await dynamoDb.query({
-      TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-      IndexName: 'apiKey-index',
-      KeyConditionExpression: 'apiKey = :apiKey',
-      ExpressionAttributeValues: {
-        ':apiKey': apiKey,
-      },
-    });
-    
-    if (!result.Items || result.Items.length === 0) {
-      throw new Error('Invalid API key');
-    }
-    const user = result.Items[0];
-  
-    if (user.usageCount >= user.limit) {
-      throw new Error('API key usage limit exceeded');
-    }
-  
     try {
-      await dynamoDb.update({
+      const result = await dynamoDb.send(new QueryCommand({
+        TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+        IndexName: 'apiKey-index',
+        KeyConditionExpression: 'apiKey = :apiKey',
+        ExpressionAttributeValues: {
+          ':apiKey': apiKey,
+        },
+      }));
+      
+      if (!result.Items || result.Items.length === 0) {
+        throw new Error('Invalid API key');
+      }
+      const user = result.Items[0];
+    
+      if (user.usageCount >= user.limit) {
+        throw new Error('API key usage limit exceeded');
+      }
+    
+      await dynamoDb.send(new UpdateCommand({
         TableName: process.env.DYNAMODB_API_KEYS_TABLE,
         Key: { userId: user.userId, apiKey: user.apiKey },
         UpdateExpression: 'SET usageCount = if_not_exists(usageCount, :zero) + :inc',
@@ -173,11 +174,11 @@ async function validateApiKey(apiKey) {
           ':inc': 1,
           ':zero': 0
         },
-      });
+      }));
+    
+      return user;
     } catch (error) {
-      console.error('Error updating API key usage:', error);
-      throw new Error('Failed to update API key usage');
+      console.error('Error validating or updating API key:', error);
+      throw new Error('Failed to validate or update API key');
     }
-  
-    return user;
   }
