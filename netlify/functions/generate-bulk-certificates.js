@@ -7,52 +7,51 @@ const { Buffer } = require('buffer');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const busboy = require('busboy');
 const { QueryCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
-const csvData = parse(csvFile, { columns: true, skip_empty_lines: true });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 
 exports.handler = async (event, context) => {
-  try {
-    const { body, headers } = event;
-    const contentType = headers['content-type'] || headers['Content-Type'];
-
-    if (!contentType || !contentType.includes('multipart/form-data')) {
-      throw new Error('Invalid content type. Expected multipart/form-data.');
+    try {
+      const { body, headers } = event;
+      const contentType = headers['content-type'] || headers['Content-Type'];
+  
+      if (!contentType || !contentType.includes('multipart/form-data')) {
+        throw new Error('Invalid content type. Expected multipart/form-data.');
+      }
+  
+      const formData = await parseMultipartForm(body, contentType);
+      const { csvFile, formData: formDataJson, logo, signatures, numberOfNames, apiKey } = formData;
+  
+      // Validate API key
+      await validateApiKey(apiKey);
+  
+      let names;
+      if (csvFile) {
+        const csvData = parse(csvFile.toString(), { columns: true, skip_empty_lines: true });
+        names = csvData.map(row => row.name);
+      } else {
+        names = await generateNamesWithGemini(parseInt(numberOfNames));
+      }
+  
+      const bulkGenerationId = uuidv4();
+  
+      // Start the bulk generation process
+      await startBulkGeneration(bulkGenerationId, names, JSON.parse(formDataJson), logo, signatures);
+  
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generationId: bulkGenerationId })
+      };
+    } catch (error) {
+      console.error('Error starting bulk generation:', error);
+      return {
+        statusCode: 500,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Failed to start bulk generation', details: error.message })
+      };
     }
-
-    const formData = await parseMultipartForm(body, contentType);
-    const { csvFile, formData: formDataJson, logo, signatures, numberOfNames, apiKey } = formData;
-
-    // Validate API key
-    await validateApiKey(apiKey);
-
-    let names;
-    if (csvFile) {
-      const csvData = parse(csvFile.toString(), { columns: true, skip_empty_lines: true });
-      names = csvData.map(row => row.name);
-    } else {
-      names = await generateNamesWithGemini(parseInt(numberOfNames));
-    }
-
-    const bulkGenerationId = uuidv4();
-
-    // Start the bulk generation process
-    await startBulkGeneration(bulkGenerationId, names, JSON.parse(formDataJson), logo, signatures);
-
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ generationId: bulkGenerationId })
-    };
-  } catch (error) {
-    console.error('Error starting bulk generation:', error);
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Failed to start bulk generation', details: error.message })
-    };
-  }
-};
+  };
 
 function parseMultipartForm(body, contentType) {
   return new Promise((resolve, reject) => {
