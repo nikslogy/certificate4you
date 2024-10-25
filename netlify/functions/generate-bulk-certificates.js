@@ -146,35 +146,38 @@ async function generateNamesWithGemini(count) {
 }
 
 async function validateApiKey(apiKey) {
-    const result = await dynamoDb.query({
+  const result = await dynamoDb.query({
+    TableName: process.env.DYNAMODB_API_KEYS_TABLE,
+    IndexName: 'apiKey-index',
+    KeyConditionExpression: 'apiKey = :apiKey',
+    ExpressionAttributeValues: {
+      ':apiKey': apiKey,
+    },
+  });
+  
+  if (!result.Items || result.Items.length === 0) {
+    throw new Error('Invalid API key');
+  }
+  const user = result.Items[0];
+
+  if (user.usageCount >= user.limit) {
+    throw new Error('API key usage limit exceeded');
+  }
+
+  try {
+    await dynamoDb.update({
       TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-      IndexName: 'apiKey-index',
-      KeyConditionExpression: 'apiKey = :apiKey',
-      ExpressionAttributeValues: {
-        ':apiKey': apiKey,
+      Key: { userId: user.userId, apiKey: user.apiKey },
+      UpdateExpression: 'SET usageCount = if_not_exists(usageCount, :zero) + :inc',
+      ExpressionAttributeValues: { 
+        ':inc': 1,
+        ':zero': 0
       },
     });
-    
-    if (!result.Items || result.Items.length === 0) {
-      throw new Error('Invalid API key');
-    }
-    const user = result.Items[0];
-  
-    if (user.usageCount >= user.limit) {
-      throw new Error('API key usage limit exceeded');
-    }
-  
-    try {
-      await dynamoDb.update({
-        TableName: process.env.DYNAMODB_API_KEYS_TABLE,
-        Key: { userId: user.userId, apiKey: user.apiKey },
-        UpdateExpression: 'SET usageCount = usageCount + :inc',
-        ExpressionAttributeValues: { ':inc': 1 },
-      });
-    } catch (error) {
-      console.error('Error updating API key usage:', error);
-      throw new Error('Failed to update API key usage');
-    }
-  
-    return user;
+  } catch (error) {
+    console.error('Error updating API key usage:', error);
+    throw new Error('Failed to update API key usage');
   }
+
+  return user;
+}
