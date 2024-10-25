@@ -12,7 +12,8 @@ function Home() {
         </h1>
         <p className="subtitle">Generate professional certificates with ease</p>
         <div className="cta-buttons">
-          <Link to="/generate" className="cta-button primary">Generate Certificate</Link>
+          <Link to="/generate" className="cta-button primary">Generate a Certificate</Link>
+          <Link to="/bulk-generate" className="cta-button primary">Generate Bulk Certificates</Link>
           <Link to="/api-guide" className="cta-button secondary">API Guide</Link>
         </div>
       </div>
