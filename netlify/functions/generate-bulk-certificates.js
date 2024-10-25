@@ -1,7 +1,7 @@
 const { parse } = require('csv-parse/sync');
 const { generateCertificate } = require('../../backend/certificateGenerator');
 const { v4: uuidv4 } = require('uuid');
-const { s3, dynamoDb } = require('./config');
+const { s3, S3_BUCKET_NAME, dynamoDb } = require('./config');
 const JSZip = require('jszip');
 const { Buffer } = require('buffer');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -122,6 +122,8 @@ async function startBulkGeneration(generationId, names, formData, logo, signatur
     }
   
     const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+    console.log('S3_BUCKET_NAME:', process.env.S3_BUCKET_NAME);
+
   
     // Upload zip file to S3
     const s3Key = `bulk-certificates/${generationId}.zip`;
