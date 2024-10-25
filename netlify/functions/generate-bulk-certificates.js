@@ -124,28 +124,25 @@ async function startBulkGeneration(generationId, names, formData, logo, signatur
       
         const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
         
-        // Add logging to debug environment variables
-        console.log('Environment variables:', {
-            S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
-            IMPORTED_BUCKET_NAME: S3_BUCKET_NAME
-        });
-
-        if (!process.env.S3_BUCKET_NAME && !S3_BUCKET_NAME) {
-            throw new Error('S3 bucket name is not configured');
+        if (!S3_BUCKET_NAME) {
+            throw new Error('S3 bucket name is not configured in environment variables');
         }
       
         // Upload zip file to S3
         const s3Key = `bulk-certificates/${generationId}.zip`;
         const uploadParams = {
-            Bucket: S3_BUCKET_NAME || process.env.S3_BUCKET_NAME,
+            Bucket: S3_BUCKET_NAME,
             Key: s3Key,
             Body: zipBuffer,
             ContentType: 'application/zip'
         };
 
-        console.log('Upload params:', uploadParams);
+        console.log('Uploading to S3 with params:', {
+            ...uploadParams,
+            Body: '[ZIP Buffer]' // Don't log the actual buffer
+        });
 
-        await s3.upload(uploadParams).promise();
+        await s3.send(new PutObjectCommand(uploadParams));
       
         // Update generation status to 'completed'
         await updateGenerationStatus(generationId, 'completed', s3Key);
