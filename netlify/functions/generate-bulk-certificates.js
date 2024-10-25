@@ -179,6 +179,9 @@ async function validateApiKey(apiKey) {
       return user;
     } catch (error) {
       console.error('Error validating or updating API key:', error);
+      if (error.name === 'ValidationException' && error.message.includes('ExpressionAttributeValues must not be empty')) {
+        console.error('ExpressionAttributeValues is empty. Current values:', { ':inc': 1, ':zero': 0 });
+      }
       throw new Error('Failed to validate or update API key');
     }
   }
