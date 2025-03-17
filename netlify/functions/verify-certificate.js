@@ -1,17 +1,18 @@
 const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
-// Create S3 client directly instead of importing from config
+// Create S3 client with the correct environment variables
+// The error shows we need to use MYCERT_ prefixed variables
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || process.env.MYCERT_AWS_REGION,
+  region: process.env.MYCERT_AWS_REGION,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || process.env.MYCERT_AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.MYCERT_AWS_SECRET_ACCESS_KEY
+    accessKeyId: process.env.MYCERT_AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.MYCERT_AWS_SECRET_ACCESS_KEY
   }
 });
 
-// Use environment variable directly with fallback
-const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || process.env.MYCERT_S3_BUCKET_NAME;
+// Use the correct environment variable
+const S3_BUCKET_NAME = process.env.MYCERT_S3_BUCKET_NAME;
 
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'GET') {
@@ -21,6 +22,12 @@ exports.handler = async (event, context) => {
   const id = event.path.split('/').pop();
   console.log(`Verifying certificate with ID: ${id}`);
   console.log(`Using S3 bucket: ${S3_BUCKET_NAME}`);
+  
+  // Log environment variables (without revealing secrets)
+  console.log(`AWS Region: ${process.env.MYCERT_AWS_REGION}`);
+  console.log(`Access Key ID exists: ${!!process.env.MYCERT_AWS_ACCESS_KEY_ID}`);
+  console.log(`Secret Access Key exists: ${!!process.env.MYCERT_AWS_SECRET_ACCESS_KEY}`);
+  console.log(`S3 Bucket Name: ${S3_BUCKET_NAME}`);
 
   try {
     const command = new GetObjectCommand({
@@ -44,7 +51,7 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers: { 
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*' // Add CORS header
+        'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ ...certificateData, pdfUrl, isValid: true, issuer: certificateData.issuer })
     };
