@@ -1,3 +1,4 @@
+// src/App.js
 import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Route, Routes, NavLink, Navigate } from 'react-router-dom';
 import Home from './components/Home';
@@ -19,6 +20,12 @@ import PublicRoute from './components/PublicRoute';
 import userIcon from './assets/user.png';
 import AICertificateGenerator from './components/AICertificateGenerator';
 import BulkCertificateGenerator from './components/BulkCertificateGenerator';
+import TemplateEditor from './components/TemplateEditor';
+import TemplateManagement from './components/TemplateManagement';
+
+// Add CSS for Template Editor
+import './components/TemplateEditor.css';
+import './components/TemplateManagement.css';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -77,7 +84,7 @@ function App() {
                       <li><NavLink to="/bulk-generate" onClick={()=>setMenuOpen(false)}>Bulk Generate</NavLink></li>
                       <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
                       <li><NavLink to="/ai-generate" onClick={() => setMenuOpen(false)}>AI Generate</NavLink></li>
-
+                      <li><NavLink to="/templates" onClick={() => setMenuOpen(false)}>My Templates</NavLink></li>
                     </div>
                     <div className="menu-section">
                       <div className="menu-section-title">Resources</div>
@@ -105,6 +112,7 @@ function App() {
                   <li><NavLink to="/generate" onClick={() => setMenuOpen(false)}>Generate</NavLink></li>
                   <li><NavLink to="/bulk-generate" onClick={() => setMenuOpen(false)}> Bulk Generate</NavLink></li>
                   <li><NavLink to="/verify" onClick={() => setMenuOpen(false)}>Verify</NavLink></li>
+                  <li><NavLink to="/templates" onClick={() => setMenuOpen(false)}>My Templates</NavLink></li>
                   <li><NavLink to="/api-guide" onClick={() => setMenuOpen(false)}>API Guide</NavLink></li>
                   <li><NavLink to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</NavLink></li>
                   <li><NavLink to="/contact" onClick={() => setMenuOpen(false)}>Contact</NavLink></li>
@@ -145,12 +153,44 @@ function App() {
             <Route path="/bulk-generate" element={<BulkCertificateGenerator />} />
             <Route path="/ai-generate" element={<AICertificateGenerator />} />
             <Route path="/verify" element={<CertificateVerifier />} />
+            
+            {/* Template Editor Routes */}
+            <Route path="/templates" element={<TemplateManagement />} />
+            <Route path="/templates/new" element={<TemplateEditor />} />
+            <Route path="/templates/edit/:id" element={<TemplateEditor />} />
+            
             <Route path="/account" element={<ProtectedRoute isAuthenticated={isAuthenticated}><MyAccount /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Settings /></ProtectedRoute>} />
             {/* Catch-all route for authenticated users */}
             <Route path="*" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/" />} />
           </Routes>
         </main>
+        
+        <footer className="app-footer">
+          <div className="footer-content">
+            <div className="footer-section">
+              <h3>Certificate4You</h3>
+              <p>Create, manage, and verify certificates with ease.</p>
+            </div>
+            <div className="footer-section">
+              <h3>Quick Links</h3>
+              <ul>
+                <li><NavLink to="/">Home</NavLink></li>
+                <li><NavLink to="/generate">Generate Certificate</NavLink></li>
+                <li><NavLink to="/verify">Verify Certificate</NavLink></li>
+                <li><NavLink to="/templates">My Templates</NavLink></li>
+              </ul>
+            </div>
+            <div className="footer-section">
+              <h3>Contact</h3>
+              <p>Email: support@certificate4you.com</p>
+              <p>Phone: +1 (555) 123-4567</p>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p>&copy; {new Date().getFullYear()} Certificate4You. All rights reserved.</p>
+          </div>
+        </footer>
       </div>
     </Router>
   );

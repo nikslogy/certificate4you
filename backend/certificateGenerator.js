@@ -12,13 +12,100 @@ const s3Client = new S3Client({
   },
 });
 
-async function generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, template) {
+async function generateCertificate(name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, templateId) {
   return new Promise(async (resolve, reject) => {
     const uniqueId = uuidv4();
 
+    try {
+      // If a custom template ID is provided, use it
+      if (templateId) {
+        return await generateFromCustomTemplate(
+          templateId, 
+          { name, course, date, issuer, certificateType, additionalInfo },
+          logoBuffer,
+          signatures,
+          uniqueId,
+          resolve,
+          reject
+        );
+      }
+      
+      // Otherwise use the built-in templates
+      const doc = new PDFDocument({
+        layout: 'landscape',
+        size: 'A4',
+        margin: 0,
+      });
+
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', async () => {
+        const pdfBuffer = Buffer.concat(buffers);
+        
+        try {
+          await uploadToS3(pdfBuffer, `certificates/${uniqueId}.pdf`, 'application/pdf');
+          await storeCertificateData(uniqueId, name, course, date, certificateType, issuer, templateId);
+          const url = await generatePresignedUrl(`certificates/${uniqueId}.pdf`);
+          resolve({ 
+            id: uniqueId, 
+            url: url
+          });
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      try {
+        // Load custom fonts
+        const headingFont = await getFileFromS3('fonts/Montserrat-Bold.ttf');
+        const subHeadingFont = await getFileFromS3('fonts/Montserrat-Medium.ttf');
+        const textFont = await getFileFromS3('fonts/Montserrat-Regular.ttf');
+
+        doc.registerFont('Heading', headingFont);
+        doc.registerFont('SubHeading', subHeadingFont);
+        doc.registerFont('Text', textFont);
+      } catch (error) {
+        console.error('Error loading custom fonts:', error);
+        // Use fallback fonts if custom fonts fail to load
+        doc.font('Helvetica-Bold');
+        doc.font('Helvetica');
+      }
+
+      // Use the appropriate built-in template
+      switch (templateId) {
+        case 'modern-minimalist':
+          generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+          break;
+        case 'vibrant-achievement':
+          generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+          break;
+        default:
+          generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+      }
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function generateFromCustomTemplate(templateId, data, logoBuffer, signatures, uniqueId, resolve, reject) {
+  try {
+    // Fetch the template from S3
+    const command = new GetObjectCommand({
+      Bucket: process.env.MYCERT_S3_BUCKET_NAME,
+      Key: `templates/${templateId}.json`
+    });
+    
+    const response = await s3Client.send(command);
+    const templateString = await response.Body.transformToString();
+    const template = JSON.parse(templateString);
+    
+    // Create PDF document with the appropriate orientation
     const doc = new PDFDocument({
-      layout: 'landscape',
-      size: 'A4',
+      layout: template.orientation,
+      size: template.size,
       margin: 0,
     });
 
@@ -29,7 +116,7 @@ async function generateCertificate(name, course, date, logoBuffer, certificateTy
       
       try {
         await uploadToS3(pdfBuffer, `certificates/${uniqueId}.pdf`, 'application/pdf');
-        await storeCertificateData(uniqueId, name, course, date, certificateType, issuer, template);
+        await storeCertificateData(uniqueId, data.name, data.course, data.date, data.certificateType, data.issuer, templateId);
         const url = await generatePresignedUrl(`certificates/${uniqueId}.pdf`);
         resolve({ 
           id: uniqueId, 
@@ -39,9 +126,12 @@ async function generateCertificate(name, course, date, logoBuffer, certificateTy
         reject(error);
       }
     });
-
+    
+    // Set background color
+    doc.rect(0, 0, doc.page.width, doc.page.height).fill(template.background);
+    
+    // Load fonts
     try {
-      // Load custom fonts
       const headingFont = await getFileFromS3('fonts/Montserrat-Bold.ttf');
       const subHeadingFont = await getFileFromS3('fonts/Montserrat-Medium.ttf');
       const textFont = await getFileFromS3('fonts/Montserrat-Regular.ttf');
@@ -52,23 +142,94 @@ async function generateCertificate(name, course, date, logoBuffer, certificateTy
     } catch (error) {
       console.error('Error loading custom fonts:', error);
       // Use fallback fonts if custom fonts fail to load
-      doc.font('Helvetica-Bold');
-      doc.font('Helvetica');
     }
-
-    switch (template) {
-      case 'modern-minimalist':
-        generateModernMinimalistTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
-        break;
-      case 'vibrant-achievement':
-        generateVibrantAchievementTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
-        break;
-      default:
-        generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId);
+    
+    // Render each element from the template
+    for (const element of template.elements) {
+      renderTemplateElement(doc, element, data, logoBuffer, signatures);
     }
-
+    
+    // Add certificate ID at the bottom
+    doc.font('Helvetica')
+       .fontSize(10)
+       .fillColor('#999999')
+       .text(`Certificate ID: ${uniqueId}`, 0, doc.page.height - 30, { 
+         align: 'center', 
+         width: doc.page.width 
+       });
+    
     doc.end();
-  });
+  } catch (error) {
+    console.error('Error generating from custom template:', error);
+    reject(error);
+  }
+}
+
+function renderTemplateElement(doc, element, data, logoBuffer, signatures) {
+  switch (element.type) {
+    case 'text':
+      let text = element.text;
+      
+      // Replace dynamic fields with actual data
+      if (element.isDynamic && element.dynamicField) {
+        const fieldValue = data[element.dynamicField];
+        if (fieldValue) {
+          text = fieldValue;
+        }
+      }
+      
+      doc.font(element.fontFamily || 'Helvetica')
+         .fontSize(element.fontSize || 12)
+         .fillColor(element.fill || '#000000')
+         .text(text, element.x, element.y, {
+           width: element.width,
+           align: element.align || 'left'
+         });
+      break;
+      
+    case 'image':
+      // For logo placeholder, use the provided logo
+      if (element.isLogo && logoBuffer) {
+        doc.image(logoBuffer, element.x, element.y, {
+          width: element.width,
+          height: element.height
+        });
+      } else if (element.src) {
+        // For other images, use the source from the template
+        doc.image(element.src, element.x, element.y, {
+          width: element.width,
+          height: element.height
+        });
+      }
+      break;
+      
+    case 'signature':
+      // Find the corresponding signature from the provided signatures
+      const signatureIndex = parseInt(element.signatureIndex || 0);
+      if (signatures && signatures.length > signatureIndex) {
+        const signature = signatures[signatureIndex];
+        if (signature.image) {
+          doc.image(signature.image, element.x, element.y, {
+            width: element.width
+          });
+        }
+        
+        // Add signature name below
+        doc.font(element.fontFamily || 'Helvetica')
+           .fontSize(element.fontSize || 12)
+           .fillColor(element.fill || '#000000')
+           .text(signature.name, element.x, element.y + element.height + 5, {
+             width: element.width,
+             align: 'center'
+           });
+      } else {
+        // Draw a placeholder line if no signature is provided
+        doc.moveTo(element.x, element.y + element.height)
+           .lineTo(element.x + element.width, element.y + element.height)
+           .stroke('#000000');
+      }
+      break;
+  }
 }
 
 function generateClassicEleganceTemplate(doc, name, course, date, logoBuffer, certificateType, issuer, additionalInfo, signatures, uniqueId) {
@@ -300,7 +461,7 @@ async function generatePresignedUrl(key) {
   return getSignedUrl(s3Client, command, { expiresIn: 3600 }); // URL expires in 1 hour
 }
 
-async function storeCertificateData(uniqueId, name, course, date, certificateType, issuer, template) {
+async function storeCertificateData(uniqueId, name, course, date, certificateType, issuer, templateId) {
   const certificateData = {
     id: uniqueId,
     name: name,
@@ -308,7 +469,7 @@ async function storeCertificateData(uniqueId, name, course, date, certificateTyp
     date: date,
     certificateType: certificateType,
     issuer: issuer,
-    template: template,
+    templateId: templateId,
     issuedAt: new Date().toISOString()
   };
 

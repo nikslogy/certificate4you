@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import './CertificateGenerator.css';
 
 function CertificateGenerator() {
@@ -11,16 +11,20 @@ function CertificateGenerator() {
     certificateType: 'completion',
     issuer: '',
     additionalInfo: '',
-    template: 'classic-elegance', // Add this line
+    templateId: ''
   });
   const [logo, setLogo] = useState(null);
-  const [signatures, setSignatures] = useState([{ name: '', image: null, type: 'upload' }]);
+  const [signatures, setSignatures] = useState([{ name: '', image: null }]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState(null);
   const sigPads = useRef([]);
   const topRef = useRef(null);
   const [apiKey, setApiKey] = useState('');
+  const [templates, setTemplates] = useState([]);
+  const [result, setResult] = useState(null);
+
+  const location = useLocation();
 
   const validateFileType = (file) => {
     const validTypes = ['image/jpeg', 'image/png'];
@@ -32,7 +36,7 @@ function CertificateGenerator() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevData => ({ ...prevData, [name]: value }));
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleLogoUpload = (e) => {
@@ -78,7 +82,7 @@ function CertificateGenerator() {
 
   const addSignatureField = () => {
     if (signatures.length < 3) {
-      setSignatures([...signatures, { name: '', image: null, type: 'upload' }]);
+      setSignatures([...signatures, { name: '', image: null }]);
     }
   };
 
@@ -98,8 +102,9 @@ function CertificateGenerator() {
       logo: logo ? await fileToBase64(logo) : null,
       signatures: signatures.map((sig, index) => ({
         name: sig.name,
-        image: sig.type === 'draw' ? sigPads.current[index].toDataURL() : sig.image
-      }))
+        image: sig.image
+      })),
+      templateId: formData.templateId
     };
   
     try {
@@ -158,9 +163,10 @@ function CertificateGenerator() {
       certificateType: 'completion',
       issuer: '',
       additionalInfo: '',
+      templateId: ''
     });
     setLogo(null);
-    setSignatures([{ name: '', image: null, type: 'upload' }]);
+    setSignatures([{ name: '', image: null }]);
     setApiKey('');
   };
 
@@ -170,26 +176,34 @@ function CertificateGenerator() {
     }
   }, [generatedCertificateUrl, error]);
 
-  const templates = [
-    {
-      id: 'classic-elegance',
-      name: 'Classic Elegance',
-      image: '/images/classic-elegance-preview.jpg',
-    },
-    {
-      id: 'modern-minimalist',
-      name: 'Modern Minimalist',
-      image: '/images/modern-minimalist-preview.jpg',
-    },
-    {
-      id: 'vibrant-achievement',
-      name: 'Vibrant Achievement',
-      image: '/images/vibrant-achievement-preview.jpg',
-    },
-  ];
+  useEffect(() => {
+    // Fetch available templates
+    fetchTemplates();
+    
+    // Check if a template ID was passed in the URL
+    const queryParams = new URLSearchParams(location.search);
+    const templateId = queryParams.get('template');
+    if (templateId) {
+      setFormData(prev => ({ ...prev, templateId }));
+    }
+  }, [location]);
+  
+  const fetchTemplates = async () => {
+    try {
+      const response = await fetch('/.netlify/functions/get-templates');
+      if (!response.ok) {
+        throw new Error('Failed to fetch templates');
+      }
+      const data = await response.json();
+      setTemplates(data.templates);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      setError('Failed to load templates. Please try again later.');
+    }
+  };
 
   const handleTemplateSelect = (templateId) => {
-    setFormData({ ...formData, template: templateId });
+    setFormData({ ...formData, templateId });
   };
 
   return (
@@ -199,7 +213,7 @@ function CertificateGenerator() {
       {error && <div className="error-message">{error}</div>}
       {isLoading && <div className="loading-message">Generating certificate...</div>}
       {generatedCertificateUrl && (
-        <div className="success-message show"> {/* Add 'show' class here */}
+        <div className="success-message show">
           <p>Certificate generated successfully!</p>
           <button onClick={() => window.open(generatedCertificateUrl, '_blank')}>
             Download Certificate
@@ -346,27 +360,26 @@ function CertificateGenerator() {
           )}
         </div>
 
-      <div className="template-selection">
-        <h2>Choose a Certificate Template</h2>
-        <div className="template-grid">
-          {templates.map((template) => (
-            <div
-              key={template.id}
-              className={`template-item ${formData.template === template.id ? 'selected' : ''}`}
-              onClick={() => handleTemplateSelect(template.id)}
-            >
-              <img src={template.image} alt={template.name} />
-              <p>{template.name}</p>
-            </div>
-          ))}
+        <div className="template-selection">
+          <h2>Choose a Certificate Template</h2>
+          <div className="template-grid">
+            {templates.map((template) => (
+              <div
+                key={template.templateId}
+                className={`template-item ${formData.templateId === template.templateId ? 'selected' : ''}`}
+                onClick={() => handleTemplateSelect(template.templateId)}
+              >
+                <img src={template.image} alt={template.name} />
+                <p>{template.name}</p>
+              </div>
+            ))}
+          </div>
+          <p style={{color: 'green'}}>(Note: Modern Minimalist and Vibrant Achievement templates are currently under development.)</p>
         </div>
-        <p style={{color: 'green'}}>(Note: Modern Minimalist and Vibrant Achievement templates are currently under development.)</p>
-      </div>
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Generating...' : 'Generate Certificate'}
         </button>
       </form>
-
     </div>
   );
 }
