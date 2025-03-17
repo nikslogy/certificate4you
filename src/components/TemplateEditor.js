@@ -15,7 +15,7 @@ const TemplateEditor = () => {
   });
   
   const [selectedElement, setSelectedElement] = useState(null);
-  const [mode, setMode] = useState('select'); // select, text, image, signature, dynamic
+  // eslint-disable-next-line no-unused-vars
   const [previewMode, setPreviewMode] = useState(false);
   const [sampleData, setSampleData] = useState({
     name: 'John Doe',

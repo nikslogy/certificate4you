@@ -22,7 +22,6 @@ function CertificateGenerator() {
   const topRef = useRef(null);
   const [apiKey, setApiKey] = useState('');
   const [templates, setTemplates] = useState([]);
-  const [result, setResult] = useState(null);
 
   const location = useLocation();
 
