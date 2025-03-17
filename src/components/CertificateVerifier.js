@@ -5,23 +5,31 @@ function CertificateVerifier() {
   const [id, setId] = useState('');
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorDetails, setErrorDetails] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorDetails(null);
+    
+    // Trim the ID to remove any accidental whitespace
+    const trimmedId = id.trim();
+    
     try {
-      const response = await fetch(`/api/verify-certificate/${id}`);
+      console.log(`Sending verification request for ID: ${trimmedId}`);
+      const response = await fetch(`/.netlify/functions/verify-certificate/${trimmedId}`);
       const data = await response.json();
+      console.log('Response received:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to verify certificate');
       }
 
       setResult(data);
-      console.log('Certificate data:', data);
     } catch (error) {
       console.error('Error verifying certificate:', error);
       setResult({ error: error.message, isValid: false });
+      setErrorDetails(error.stack || 'No additional details available');
     } finally {
       setIsLoading(false);
     }
@@ -51,6 +59,8 @@ function CertificateVerifier() {
               <h3>Certificate is Valid</h3>
               <p><strong>Name:</strong> {result.name}</p>
               <p><strong>Issuer:</strong> {result.issuer}</p>
+              {result.course && <p><strong>Course:</strong> {result.course}</p>}
+              {result.date && <p><strong>Date:</strong> {result.date}</p>}
               {result.pdfUrl && (
                 <a href={result.pdfUrl} target="_blank" rel="noopener noreferrer" className="btn btn-view">
                   View Certificate
@@ -61,8 +71,17 @@ function CertificateVerifier() {
             <>
               <h3>Certificate is Invalid</h3>
               <p>{result.error}</p>
+              {result.details && <p><small>Details: {result.details}</small></p>}
             </>
           )}
+        </div>
+      )}
+      {errorDetails && (
+        <div className="debug-info">
+          <details>
+            <summary>Debug Information</summary>
+            <pre>{errorDetails}</pre>
+          </details>
         </div>
       )}
     </div>
